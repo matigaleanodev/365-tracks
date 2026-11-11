@@ -1,0 +1,24 @@
+@let song = track();
+<article class="track-feature" aria-labelledby="track-title">
+  <div class="sleeve">
+    <app-album-cover [src]="song.coverUrl" [album]="song.album" [priority]="true" />
+  </div>
+  <div class="track-copy">
+    <time [attr.datetime]="song.date">{{ song.date | date: 'longDate' : 'UTC' }}</time>
+    <h1 id="track-title">{{ song.title }}</h1>
+    <p class="artist">{{ song.artist }}</p>
+    <p class="album">{{ song.album }}</p>
+    <div class="selection">
+      <h2>Por qué esta canción</h2>
+      <p>{{ song.description }}</p>
+    </div>
+    @if (song.spotifyUrl) {
+      <a class="button primary" [href]="song.spotifyUrl" target="_blank" rel="noopener noreferrer"
+        >Escuchar en Spotify <span aria-hidden="true">↗</span
+        ><span class="sr-only"> (se abre en otra pestaña)</span></a
+      >
+    } @else {
+      <p class="muted">No hay un enlace de escucha disponible.</p>
+    }
+  </div>
+</article>

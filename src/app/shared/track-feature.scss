@@ -1,0 +1,53 @@
+.track-feature {
+  display: grid;
+  gap: 2.5rem;
+}
+.sleeve {
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  align-self: start;
+  box-shadow: 0 14px 36px var(--shadow);
+}
+time {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+h1 {
+  margin: 1rem 0 0.6rem;
+  font-size: clamp(2.5rem, 6vw, 4.3rem);
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+  overflow-wrap: anywhere;
+}
+.artist {
+  font-size: 1.5rem;
+  margin: 0 0 0.4rem;
+}
+.album {
+  color: var(--muted);
+  margin: 0;
+}
+.selection {
+  border-top: 1px solid var(--line);
+  margin: 2rem 0;
+  padding-top: 1.5rem;
+}
+h2 {
+  font-size: 1rem;
+  margin: 0 0 0.7rem;
+}
+.selection p {
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 0;
+  white-space: pre-line;
+}
+@media (min-width: 760px) {
+  .track-feature {
+    grid-template-columns: 1.05fr 1fr;
+    gap: clamp(2.5rem, 6vw, 6rem);
+    align-items: center;
+  }
+}
