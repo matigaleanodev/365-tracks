@@ -1,0 +1,26 @@
+<a class="skip-link" href="#content">Saltar al contenido</a>
+<header class="site-header">
+  <a class="wordmark" routerLink="/" aria-label="365 Tracks, inicio"
+    ><span class="record-mark" aria-hidden="true"></span>365 <span>Tracks</span></a
+  >
+  <nav aria-label="Navegación principal">
+    <a
+      routerLink="/"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      ariaCurrentWhenActive="page"
+      >Hoy</a
+    >
+    <a routerLink="/history" routerLinkActive="active" ariaCurrentWhenActive="page">Historial</a>
+  </nav>
+</header>
+@if (fixtures) {
+  <aside class="fixture-banner" role="note">
+    Demostración local. Canciones y portadas ficticias; no son selecciones publicadas.
+  </aside>
+}
+<main id="content" tabindex="-1"><router-outlet /></main>
+<footer class="site-footer">
+  <p>Una canción al día. Un motivo para escuchar.</p>
+  <p>Desde el 1 de enero de 2027</p>
+</footer>
