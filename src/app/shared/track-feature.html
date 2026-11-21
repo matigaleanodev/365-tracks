@@ -4,7 +4,9 @@
     <app-album-cover [src]="song.coverUrl" [album]="song.album" [priority]="true" />
   </div>
   <div class="track-copy">
-    <time [attr.datetime]="song.date">{{ song.date | date: 'longDate' : 'UTC' }}</time>
+    <time [attr.datetime]="song.date">
+      {{ song.date + 'T00:00:00Z' | date: 'longDate' : 'UTC' }}
+    </time>
     <h1 id="track-title">{{ song.title }}</h1>
     <p class="artist">{{ song.artist }}</p>
     <p class="album">{{ song.album }} · {{ song.releaseYear }}</p>

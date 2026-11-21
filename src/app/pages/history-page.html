@@ -28,7 +28,9 @@
       <li>
         <a class="history-track" [routerLink]="['/tracks', track.date]">
           <app-album-cover [src]="track.coverUrl" [album]="track.album" />
-          <time [attr.datetime]="track.date">{{ track.date | date: 'd MMM yyyy' : 'UTC' }}</time>
+          <time [attr.datetime]="track.date">
+            {{ track.date + 'T00:00:00Z' | date: 'd MMM yyyy' : 'UTC' }}
+          </time>
           <h2>{{ track.title }}</h2>
           <p>{{ track.artist }}</p>
         </a>

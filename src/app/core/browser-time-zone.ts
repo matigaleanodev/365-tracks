@@ -1,5 +1,16 @@
 import { DOCUMENT, inject, Injectable } from '@angular/core';
-import { distinctUntilChanged, Observable } from 'rxjs';
+import {
+  distinctUntilChanged,
+  EMPTY,
+  fromEvent,
+  merge,
+  Observable,
+  of,
+  startWith,
+  switchMap,
+  take,
+  timer,
+} from 'rxjs';
 
 function detectTimeZone(): string {
   try {
@@ -14,62 +25,88 @@ function detectTimeZone(): string {
 }
 
 const hours = 60 * 60 * 1000;
+const minute = 60 * 1000;
 
 @Injectable({ providedIn: 'root' })
 export class BrowserTimeZone {
   private readonly document = inject(DOCUMENT);
   readonly timeZone = detectTimeZone();
+  private readonly formatter =
+    this.timeZone === 'UTC'
+      ? null
+      : new Intl.DateTimeFormat('en', {
+          timeZone: this.timeZone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        });
+  private readonly visibilityChanges = merge(
+    fromEvent(this.document, 'visibilitychange'),
+    this.document.defaultView ? fromEvent(this.document.defaultView, 'pageshow') : EMPTY,
+  );
 
   dayChanges(): Observable<string> {
-    const formatter =
-      this.timeZone === 'UTC'
-        ? null
-        : new Intl.DateTimeFormat('en', {
-            timeZone: this.timeZone,
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          });
-    const dayAt = (time: number) => {
-      if (!formatter) return new Date(time).toISOString().slice(0, 10);
-      const parts = formatter.formatToParts(time);
-      return ['year', 'month', 'day']
-        .map((type) => parts.find((part) => part.type === type)?.value)
-        .join('-');
-    };
-
     return new Observable<string>((subscriber) => {
       let timeout: ReturnType<typeof setTimeout> | undefined;
       const checkDay = () => {
         clearTimeout(timeout);
         const now = Date.now();
-        const day = dayAt(now);
+        const day = this.dayAt(now);
         subscriber.next(day);
         if (this.document.hidden || subscriber.closed) return;
 
         // Find the local date boundary even when a clock transition skips midnight.
-        let start = now;
-        let end = now + 48 * hours;
-        while (end - start > 1) {
-          const middle = start + Math.floor((end - start) / 2);
-          if (dayAt(middle) === day) start = middle;
-          else end = middle;
-        }
-        timeout = setTimeout(checkDay, Math.max(1, end - Date.now()));
+        const nextDay = this.findDayChange(now, now + 48 * hours);
+        timeout = setTimeout(checkDay, Math.max(1, nextDay - Date.now()));
       };
-      const resume = () => {
+      const visibility = this.visibilityChanges.subscribe(() => {
         if (this.document.hidden) clearTimeout(timeout);
         else checkDay();
-      };
+      });
 
-      this.document.addEventListener('visibilitychange', resume);
-      this.document.defaultView?.addEventListener('pageshow', resume);
       checkDay();
       return () => {
         clearTimeout(timeout);
-        this.document.removeEventListener('visibilitychange', resume);
-        this.document.defaultView?.removeEventListener('pageshow', resume);
+        visibility.unsubscribe();
       };
     }).pipe(distinctUntilChanged());
+  }
+
+  midnightRecheckTimes(): readonly number[] {
+    const now = Date.now();
+    const start = now - 2 * minute;
+    if (this.dayAt(start) === this.dayAt(now)) return [];
+    const midnight = this.findDayChange(start, now);
+    return [midnight + minute, midnight + 2 * minute];
+  }
+
+  whenVisibleAt(time: number): Observable<unknown> {
+    return this.visibilityChanges.pipe(
+      startWith(null),
+      switchMap(() => {
+        if (this.document.hidden) return EMPTY;
+        const delay = time - Date.now();
+        return delay > 0 ? timer(delay) : of(null);
+      }),
+      take(1),
+    );
+  }
+
+  private dayAt(time: number): string {
+    if (!this.formatter) return new Date(time).toISOString().slice(0, 10);
+    const parts = this.formatter.formatToParts(time);
+    return ['year', 'month', 'day']
+      .map((type) => parts.find((part) => part.type === type)?.value)
+      .join('-');
+  }
+
+  private findDayChange(start: number, end: number): number {
+    const day = this.dayAt(start);
+    while (end - start > 1) {
+      const middle = start + Math.floor((end - start) / 2);
+      if (this.dayAt(middle) === day) start = middle;
+      else end = middle;
+    }
+    return end;
   }
 }
