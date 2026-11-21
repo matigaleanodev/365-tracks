@@ -17,6 +17,15 @@ describe('Public pages', () => {
   const timezone = 'America/New_York';
   const text = () => harness.routeNativeElement?.textContent ?? '';
   const button = () => harness.routeNativeElement?.querySelector('button');
+  const todayRequest = () =>
+    http.expectOne((req) => req.url.endsWith('/today') && req.params.get('timezone') === timezone);
+  const useClock = (time: number) => {
+    vi.useFakeTimers({
+      toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'],
+    });
+    vi.setSystemTime(time);
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+  };
   const historyDates = () =>
     Array.from(harness.routeNativeElement?.querySelectorAll('.history-grid time') ?? [], (date) =>
       date.getAttribute('datetime'),
@@ -117,6 +126,141 @@ describe('Public pages', () => {
     expect(text()).toContain(sampleTrack.title);
   });
 
+  it.each([
+    ['one minute fast', 60_000],
+    ['one minute slow', -60_000],
+    ['correct', 0],
+  ])('updates the selection when the device clock is %s', async (_clock, clockOffset) => {
+    const midnight = Date.parse('2027-01-02T05:00:00Z');
+    const nextTrack = { ...sampleTrack, date: '2027-01-02', title: 'Next track' };
+    useClock(midnight - 120_000 + clockOffset);
+    const respondForServerTime = () => {
+      const track = Date.now() - clockOffset >= midnight ? nextTrack : sampleTrack;
+      todayRequest().flush({ data: track });
+      harness.detectChanges();
+    };
+
+    await harness.navigateByUrl('/');
+    respondForServerTime();
+    expect(text()).toContain(sampleTrack.title);
+
+    vi.advanceTimersByTime(120_000 - clockOffset - 1);
+    http.expectNone(() => true);
+    vi.advanceTimersByTime(1);
+    respondForServerTime();
+
+    if (clockOffset > 0) {
+      expect(text()).toContain(sampleTrack.title);
+      vi.advanceTimersByTime(59_999);
+      http.expectNone(() => true);
+      vi.advanceTimersByTime(1);
+      respondForServerTime();
+    }
+
+    expect(text()).toContain(nextTrack.title);
+    vi.advanceTimersByTime(12 * 60 * 60 * 1000);
+    http.expectNone(() => true);
+  });
+
+  it('rechecks an old selection when opened just after device midnight', async () => {
+    const midnight = Date.parse('2027-01-02T05:00:00Z');
+    useClock(midnight + 30_000);
+    await harness.navigateByUrl('/');
+    todayRequest().flush({ data: sampleTrack });
+
+    vi.advanceTimersByTime(30_000);
+    const nextTrack = { ...sampleTrack, date: '2027-01-02' };
+    todayRequest().flush({ data: nextTrack });
+    harness.detectChanges();
+    expect(harness.routeNativeElement?.querySelector('time')?.dateTime).toBe(nextTrack.date);
+  });
+
+  it('recovers a missed recheck when returning on the same device date', async () => {
+    useClock(Date.parse('2027-01-02T05:00:00Z'));
+    const hidden = vi.spyOn(document, 'hidden', 'get');
+    await harness.navigateByUrl('/');
+    todayRequest().flush({ data: sampleTrack });
+
+    hidden.mockReturnValue(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    vi.advanceTimersByTime(5 * 60 * 1000);
+    http.expectNone(() => true);
+
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    const nextTrack = { ...sampleTrack, date: '2027-01-02' };
+    todayRequest().flush({ data: nextTrack });
+    harness.detectChanges();
+    expect(harness.routeNativeElement?.querySelector('time')?.dateTime).toBe(nextTrack.date);
+    document.defaultView?.dispatchEvent(new Event('pageshow'));
+    http.expectNone(() => true);
+  });
+
+  it('recovers from an old response delivered after the midnight window', async () => {
+    useClock(Date.parse('2027-01-02T05:00:00Z'));
+    await harness.navigateByUrl('/');
+    const pending = todayRequest();
+    vi.advanceTimersByTime(180_000);
+    http.expectNone(() => true);
+
+    pending.flush({ data: sampleTrack });
+    const nextTrack = { ...sampleTrack, date: '2027-01-02' };
+    todayRequest().flush({ data: nextTrack });
+    harness.detectChanges();
+    expect(harness.routeNativeElement?.querySelector('time')?.dateTime).toBe(nextTrack.date);
+    vi.advanceTimersByTime(180_000);
+    http.expectNone(() => true);
+  });
+
+  it('skips midnight rechecks before launch', async () => {
+    useClock(Date.parse('2026-12-31T05:00:00Z'));
+    await harness.navigateByUrl('/');
+    todayRequest().flush(apiError('TRACK_NOT_FOUND'), { status: 404, statusText: 'Not Found' });
+    vi.advanceTimersByTime(180_000);
+    http.expectNone(() => true);
+    harness.detectChanges();
+    expect(text()).toContain('El calendario musical todavía no empezó');
+  });
+
+  it('stops checking an unprepared selection after the midnight window', async () => {
+    useClock(Date.parse('2027-01-02T05:00:00Z'));
+    const unpublished = () =>
+      todayRequest().flush(apiError('TRACK_NOT_FOUND'), {
+        status: 404,
+        statusText: 'Not Found',
+      });
+    await harness.navigateByUrl('/');
+    unpublished();
+    harness.detectChanges();
+    expect(text()).toContain('Todavía no hay una canción publicada para hoy');
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      vi.advanceTimersByTime(59_999);
+      http.expectNone(() => true);
+      vi.advanceTimersByTime(1);
+      unpublished();
+    }
+    vi.advanceTimersByTime(12 * 60 * 60 * 1000);
+    http.expectNone(() => true);
+    harness.detectChanges();
+    expect(text()).toContain('Todavía no hay una canción publicada para hoy');
+  });
+
+  it('removes a scheduled midnight recheck when navigating to historical detail', async () => {
+    useClock(Date.parse('2027-01-02T05:00:00Z'));
+    await harness.navigateByUrl('/');
+    todayRequest().flush({ data: sampleTrack });
+
+    await harness.navigateByUrl('/tracks/2027-01-01');
+    http.expectOne((req) => req.url.endsWith('/2027-01-01')).flush({ data: sampleTrack });
+    vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+    document.dispatchEvent(new Event('visibilitychange'));
+    document.defaultView?.dispatchEvent(new Event('pageshow'));
+    http.expectNone(() => true);
+    harness.detectChanges();
+    expect(text()).toContain(sampleTrack.title);
+  });
+
   it('retries daily failures and displays the complete selection', async () => {
     await harness.navigateByUrl('/');
     http
@@ -143,6 +287,9 @@ describe('Public pages', () => {
     expect(harness.routeNativeElement?.querySelector('img')?.getAttribute('src')).toBe(
       sampleTrackWithEditorial.coverUrl,
     );
+    expect(harness.routeNativeElement?.querySelector('time')?.textContent?.trim()).toBe(
+      'January 1, 2027',
+    );
     const spotify = harness.routeNativeElement?.querySelector('a[target="_blank"]');
     expect(spotify?.getAttribute('href')).toBe(sampleTrack.spotifyUrl);
     expect(spotify?.getAttribute('rel')).toBe('noopener noreferrer');
@@ -164,6 +311,21 @@ describe('Public pages', () => {
     harness.detectChanges();
     expect(text()).toContain('Todavía no hay una canción para esta fecha');
     expect(harness.routeNativeElement?.querySelector('a[href="/history"]')).toBeTruthy();
+  });
+
+  it('cancels pending requests in both directions between today and historical detail', async () => {
+    await harness.navigateByUrl('/');
+    const today = http.expectOne((req) => req.url.endsWith('/today'));
+
+    await harness.navigateByUrl('/tracks/2027-01-01');
+    expect(today.cancelled).toBe(true);
+    const detail = http.expectOne((req) => req.url.endsWith('/2027-01-01'));
+
+    await harness.navigateByUrl('/');
+    expect(detail.cancelled).toBe(true);
+    http.expectOne((req) => req.url.endsWith('/today')).flush({ data: sampleTrack });
+    harness.detectChanges();
+    expect(text()).toContain(sampleTrack.title);
   });
 
   it('updates a reused date route and cancels the previous request', async () => {
@@ -190,6 +352,9 @@ describe('Public pages', () => {
     historyRequest().flush(historyBody([newest, middle], 'opaque-cursor'));
     harness.detectChanges();
     expect(historyDates()).toEqual([newest.date, middle.date]);
+    expect(
+      harness.routeNativeElement?.querySelector('.history-grid time')?.textContent?.trim(),
+    ).toBe('3 Jan 2027');
 
     const loadMore = button();
     expect(loadMore?.textContent).toContain('Cargar más canciones');

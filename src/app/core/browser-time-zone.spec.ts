@@ -26,6 +26,11 @@ describe('BrowserTimeZone', () => {
 
   it.each([
     ['America/New_York', '2027-01-01T05:00:00Z'],
+    ['America/Argentina/Buenos_Aires', '2027-01-01T03:00:00Z'],
+    ['Europe/Madrid', '2026-12-31T23:00:00Z'],
+    ['Asia/Tokyo', '2026-12-31T15:00:00Z'],
+    ['Pacific/Kiritimati', '2026-12-31T10:00:00Z'],
+    ['UTC', '2027-01-01T00:00:00Z'],
     ['America/Santiago', '2024-09-08T04:00:00Z'],
     ['Invalid/Zone', '2027-01-01T00:00:00Z'],
   ])('emits at the local date boundary for %s with one timer', (timeZone, boundary) => {
@@ -43,6 +48,26 @@ describe('BrowserTimeZone', () => {
     vi.advanceTimersByTime(1);
     expect(onDay).toHaveBeenCalledTimes(2);
     expect(vi.getTimerCount()).toBe(1);
+    subscription.unsubscribe();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each([
+    ['2027-03-27T23:00:00Z', 23, '2027-03-29'],
+    ['2027-10-30T22:00:00Z', 25, '2027-11-01'],
+  ])('follows the Madrid day starting at %s when it lasts %i hours', (start, dayHours, nextDay) => {
+    mockTimeZone('Europe/Madrid');
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(Date.parse(start));
+    vi.spyOn(TestBed.inject(DOCUMENT), 'hidden', 'get').mockReturnValue(false);
+
+    const onDay = vi.fn();
+    const subscription = TestBed.inject(BrowserTimeZone).dayChanges().subscribe(onDay);
+    vi.advanceTimersByTime(dayHours * 60 * 60 * 1000 - 1);
+    expect(onDay).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(1);
+    expect(onDay).toHaveBeenCalledTimes(2);
+    expect(onDay).toHaveBeenLastCalledWith(nextDay);
     subscription.unsubscribe();
     expect(vi.getTimerCount()).toBe(0);
   });
