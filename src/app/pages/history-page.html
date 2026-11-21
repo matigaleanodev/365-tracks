@@ -1,0 +1,58 @@
+<div class="history-heading">
+  <p class="section-label">Para volver a escuchar</p>
+  <h1>El historial.</h1>
+  <p>Las canciones que fueron parte de otros días, de la más reciente a la primera.</p>
+</div>
+@let result = state();
+@if (result.status === 'loading') {
+  <p class="state-panel" role="status">Cargando el historial…</p>
+} @else if (result.status === 'error') {
+  <section class="state-panel" role="alert">
+    <h2>No se pudo cargar el historial.</h2>
+    <p>Volvé a intentarlo en un momento.</p>
+    <button class="button primary" (click)="retry()">Reintentar</button>
+  </section>
+} @else {
+  @if (result.data.items.length) {
+    <ul class="history-grid">
+      @for (track of result.data.items; track track.date) {
+        <li>
+          <a class="history-track" [routerLink]="['/tracks', track.date]">
+            <app-album-cover [src]="track.coverUrl" [album]="track.album" />
+            <time [attr.datetime]="track.date">{{ track.date | date: 'd MMM yyyy' : 'UTC' }}</time>
+            <h2>{{ track.title }}</h2>
+            <p>{{ track.artist }}</p>
+          </a>
+        </li>
+      }
+    </ul>
+  } @else {
+    <section class="state-panel">
+      <h2>
+        {{
+          page() === 1
+            ? 'El archivo empieza con la primera canción.'
+            : 'No hay canciones en esta página.'
+        }}
+      </h2>
+      <p>Las selecciones estarán disponibles desde el 1 de enero de 2027.</p>
+    </section>
+  }
+  @if (totalPages() > 1 || page() > 1) {
+    <nav class="pagination" aria-label="Páginas del historial">
+      @if (page() > 1) {
+        <a class="button secondary" routerLink="/history" [queryParams]="{ page: page() - 1 }"
+          >Anterior</a
+        >
+      }
+      <span aria-current="page">Página {{ page() }} de {{ totalPages() }}</span>
+      @if (page() < totalPages()) {
+        <a class="button secondary" routerLink="/history" [queryParams]="{ page: page() + 1 }"
+          >Siguiente</a
+        >
+      } @else if (page() > totalPages()) {
+        <a class="button secondary" routerLink="/history">Volver al inicio</a>
+      }
+    </nav>
+  }
+}
