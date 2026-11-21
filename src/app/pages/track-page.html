@@ -5,48 +5,47 @@
   >
 </div>
 @let result = state();
-@if (result.status === 'loading') {
+@if (result.status === 'prelaunch') {
+  <section class="state-panel">
+    <h1>El calendario musical todavía no empezó.</h1>
+    <p>La primera canción llega el <time datetime="2027-01-01">1 de enero de 2027</time>.</p>
+  </section>
+} @else if (result.status === 'invalid') {
+  <section class="state-panel">
+    <h1>La fecha no es válida.</h1>
+    <p>Usá una fecha del calendario en formato AAAA-MM-DD.</p>
+  </section>
+} @else if (result.status === 'loading') {
   <div class="loading-layout" role="status" aria-live="polite">
     <div class="cover-placeholder" aria-hidden="true"></div>
     <p>Buscando la canción…</p>
   </div>
 } @else if (result.status === 'error') {
   <section class="state-panel" role="alert">
-    <p class="section-label">No pudimos conectar</p>
-    <h1>La música puede esperar un momento.</h1>
-    <p>No se pudo cargar la selección. Volvé a intentarlo.</p>
+    <h1>No pudimos cargar la selección.</h1>
+    <p>Volvé a intentarlo en un momento.</p>
     <button class="button primary" (click)="retry()">Reintentar</button>
   </section>
 } @else if (result.data) {
   <app-track-feature [track]="result.data" />
 } @else {
   <section class="empty-feature" aria-labelledby="empty-title">
-    <div class="empty-sleeve" aria-hidden="true">
-      <div class="vinyl"><span>365</span></div>
-      <span class="sleeve-caption">El próximo descubrimiento</span>
-    </div>
     <div class="empty-copy">
-      <p class="section-label">{{ isToday() ? 'Un día, una canción' : 'Sin publicación' }}</p>
       <h1 id="empty-title">
         {{
-          isToday() ? 'Algo bueno está por sonar.' : 'Todavía no hay una canción para esta fecha.'
+          isToday()
+            ? 'Todavía no hay una canción publicada para hoy.'
+            : 'Todavía no hay una canción para esta fecha.'
         }}
       </h1>
-      <p>
-        {{
-          isToday()
-            ? 'Una canción para todos. Una pequeña historia para escucharla de otra manera.'
-            : 'Podés explorar las selecciones que ya están publicadas en el historial.'
-        }}
-      </p>
-      @if (isToday()) {
-        <p class="launch-note">
-          La primera selección llega el <strong>1 de enero de 2027</strong>.
+      @if (!isToday()) {
+        <p class="muted">
+          Fecha consultada <time [attr.datetime]="date()">{{ date() }}</time>
         </p>
-      } @else {
-        <p class="muted">Fecha consultada: {{ date() }}</p>
       }
-      <a class="button secondary" routerLink="/history">Ver el historial</a>
+    </div>
+    <div class="empty-sleeve" aria-hidden="true">
+      <div class="vinyl"><span>365</span></div>
     </div>
   </section>
 }

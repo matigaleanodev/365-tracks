@@ -2,67 +2,118 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
+import { apiError, sampleTrack, sampleTrackWithEditorial } from '../testing/sample-track';
+import { isPublicationDate, parseTrackListResponse, parseTrackResponse } from './track';
 import { TracksApi } from './tracks-api';
-import { parseTrack, parseTrackPage, isPublicationDate } from './track';
-
-import { sampleTrack } from '../testing/sample-track';
 
 describe('TracksApi', () => {
-  let api: TracksApi;
+  const api = () => TestBed.inject(TracksApi);
   let http: HttpTestingController;
+  const base = environment.apiBaseUrl + '/tracks';
+  const timeZone = 'America/New_York';
+  const timeZoneQuery = '?timezone=' + timeZone;
+
   beforeEach(() => {
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      ...new Intl.DateTimeFormat('en', { timeZone }).resolvedOptions(),
+      timeZone,
+    });
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
-    api = TestBed.inject(TracksApi);
     http = TestBed.inject(HttpTestingController);
   });
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    vi.restoreAllMocks();
+  });
 
-  it('loads today from the API without choosing a local date', () => {
-    let track: unknown;
-    api.today().subscribe((value) => (track = value));
-    http.expectOne(`${environment.apiBaseUrl}/tracks/today`).flush(sampleTrack);
-    expect(track).toEqual(sampleTrack);
+  it('loads today with the browser time zone and accepts omitted optional fields', () => {
+    const next = vi.fn();
+    api().today().subscribe(next);
+    const request = http.expectOne(base + '/today' + timeZoneQuery);
+    expect(request.request.cache).toBe('no-store');
+    request.flush({ data: sampleTrack });
+    expect(next).toHaveBeenCalledWith(sampleTrack);
   });
-  it('maps 404 and null responses to an unpublished date', () => {
-    const values: unknown[] = [];
-    api.byDate('2027-01-02').subscribe((value) => values.push(value));
+
+  it('loads a date with optional editorial fields', () => {
+    const next = vi.fn();
+    api().byDate(sampleTrack.date).subscribe(next);
     http
-      .expectOne(`${environment.apiBaseUrl}/tracks/2027-01-02`)
-      .flush(null, { status: 404, statusText: 'Not Found' });
-    api.today().subscribe((value) => values.push(value));
-    http.expectOne(`${environment.apiBaseUrl}/tracks/today`).flush(null);
-    expect(values).toEqual([null, null]);
+      .expectOne(base + '/' + sampleTrack.date + timeZoneQuery)
+      .flush({ data: sampleTrackWithEditorial });
+    expect(next).toHaveBeenCalledWith(sampleTrackWithEditorial);
   });
-  it('keeps server failures distinct from missing songs', () => {
+
+  it('maps a 404 TRACK_NOT_FOUND with an optional request ID to an unpublished date', () => {
+    const next = vi.fn();
+    api().today().subscribe(next);
+    http
+      .expectOne(base + '/today' + timeZoneQuery)
+      .flush(
+        { error: { code: 'TRACK_NOT_FOUND', message: 'No track' } },
+        { status: 404, statusText: 'Not Found' },
+      );
+    expect(next).toHaveBeenCalledWith(null);
+  });
+
+  it.each([
+    [400, 'INVALID_DATE'],
+    [404, 'ROUTE_NOT_FOUND'],
+    [500, 'INTERNAL_ERROR'],
+  ] as const)('propagates HTTP %i %s with its error envelope', (status, code) => {
     const error = vi.fn();
-    api.today().subscribe({ error });
+    const body = apiError(code);
+    api().byDate(sampleTrack.date).subscribe({ error });
     http
-      .expectOne(`${environment.apiBaseUrl}/tracks/today`)
-      .flush(null, { status: 503, statusText: 'Unavailable' });
-    expect(error).toHaveBeenCalledOnce();
+      .expectOne(base + '/' + sampleTrack.date + timeZoneQuery)
+      .flush(body, { status, statusText: code });
+    expect(error).toHaveBeenCalledWith(expect.objectContaining({ status, error: body }));
   });
-  it('does not request impossible dates', () => {
-    let value: unknown;
-    api.byDate('2027-02-30').subscribe((track) => (value = track));
-    expect(value).toBeNull();
+
+  it('rejects impossible dates without making an HTTP request', () => {
+    const error = vi.fn();
+    api().byDate('2027-02-30').subscribe({ error });
     http.expectNone(() => true);
+    expect(error).toHaveBeenCalledWith(expect.any(RangeError));
   });
-  it('sends pagination parameters and parses the page', () => {
-    let response: unknown;
-    api.history(2).subscribe((value) => (response = value));
-    const request = http.expectOne((req) => req.url === `${environment.apiBaseUrl}/tracks`);
-    expect(request.request.params.get('page')).toBe('2');
-    expect(request.request.params.get('pageSize')).toBe('12');
-    request.flush({ items: [sampleTrack], page: 2, pageSize: 12, total: 13 });
-    expect(response).toEqual({ items: [sampleTrack], page: 2, pageSize: 12, total: 13 });
+
+  it('sends the time zone, limit and opaque cursor and parses response metadata', () => {
+    const next = vi.fn();
+    api().history('a+b/=').subscribe(next);
+    const request = http.expectOne(base + timeZoneQuery + '&limit=30&cursor=a%2Bb/=');
+    const response = { data: [sampleTrack], pagination: { limit: 30, nextCursor: null } };
+    request.flush(response);
+    expect(next).toHaveBeenCalledWith(response);
   });
-  it('rejects malformed responses', () => {
+
+  it('propagates invalid cursor errors', () => {
     const error = vi.fn();
-    api.today().subscribe({ error });
-    http.expectOne(`${environment.apiBaseUrl}/tracks/today`).flush({ title: 'Incomplete' });
-    expect(error).toHaveBeenCalledOnce();
+    api().history('invalid').subscribe({ error });
+    http
+      .expectOne(base + timeZoneQuery + '&limit=30&cursor=invalid')
+      .flush(apiError('INVALID_QUERY_PARAMETER'), { status: 400, statusText: 'Bad Request' });
+    expect(error).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+  });
+
+  it.each([null, sampleTrack, { data: { title: 'Incomplete' } }])(
+    'rejects malformed success responses',
+    (body) => {
+      const error = vi.fn();
+      api().today().subscribe({ error });
+      http.expectOne(base + '/today' + timeZoneQuery).flush(body);
+      expect(error).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('sends UTC when the browser cannot determine a valid time zone', () => {
+    vi.mocked(Intl.DateTimeFormat.prototype.resolvedOptions).mockReturnValue({
+      ...new Intl.DateTimeFormat().resolvedOptions(),
+      timeZone: 'Invalid/Zone',
+    });
+    api().today().subscribe();
+    http.expectOne(base + '/today?timezone=UTC').flush({ data: sampleTrack });
   });
 });
 
@@ -72,6 +123,7 @@ describe('API boundary', () => {
     for (const date of ['2027-02-29', '2027-13-01', 'today', '2027-1-1'])
       expect(isPublicationDate(date)).toBe(false);
   });
+
   it('rejects unsafe or unrelated outgoing URLs', () => {
     for (const spotifyUrl of [
       'javascript:alert(1)',
@@ -79,12 +131,26 @@ describe('API boundary', () => {
       'https://example.com',
       'https://open.spotify.com/album/1234567890123456789012',
     ]) {
-      expect(() => parseTrack({ ...sampleTrack, spotifyUrl })).toThrow();
+      expect(() => parseTrackResponse({ data: { ...sampleTrack, spotifyUrl } })).toThrow();
     }
-    expect(() => parseTrack({ ...sampleTrack, coverUrl: 'http://example.com/cover' })).toThrow();
+    expect(() =>
+      parseTrackResponse({ data: { ...sampleTrack, coverUrl: 'http://example.com/cover' } }),
+    ).toThrow();
   });
-  it('rejects invalid pagination metadata', () => {
-    expect(() => parseTrackPage({ items: [], page: 1, pageSize: 0, total: 1 })).toThrow();
-    expect(() => parseTrackPage({ items: [{}], page: 1, pageSize: 12, total: 1 })).toThrow();
+
+  it('only accepts relative fixture artwork in fixture mode', () => {
+    const response = { data: { ...sampleTrack, coverUrl: '/fixtures/cover.svg' } };
+    expect(() => parseTrackResponse(response)).toThrow();
+    expect(parseTrackResponse(response, true)).toEqual(response);
+  });
+
+  it.each([
+    { data: [], pagination: { limit: 0, nextCursor: null } },
+    { data: [], pagination: { limit: 101, nextCursor: null } },
+    { data: [], pagination: { limit: 30, nextCursor: 2 } },
+    { data: [], pagination: { limit: 30 } },
+    { data: [{}], pagination: { limit: 30, nextCursor: null } },
+  ])('rejects malformed history responses', (body) => {
+    expect(() => parseTrackListResponse(body)).toThrow();
   });
 });

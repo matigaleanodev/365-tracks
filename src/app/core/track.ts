@@ -3,16 +3,38 @@ export interface Track {
   readonly title: string;
   readonly artist: string;
   readonly album: string;
-  readonly coverUrl: string;
-  readonly spotifyUrl: string | null;
-  readonly description: string;
+  readonly releaseYear: number;
+  readonly spotifyTrackId: string;
+  readonly spotifyUrl: string;
+  readonly selectionCriterion: string;
+  readonly createdAt: string;
+  readonly coverUrl?: string;
+  readonly description?: string;
 }
 
-export interface TrackPage {
-  readonly items: readonly Track[];
-  readonly page: number;
-  readonly pageSize: number;
-  readonly total: number;
+export interface TrackResponse {
+  readonly data: Track;
+}
+
+export interface TrackListResponse {
+  readonly data: readonly Track[];
+  readonly pagination: {
+    readonly limit: number;
+    readonly nextCursor: string | null;
+  };
+}
+
+export interface ErrorResponse {
+  readonly error: {
+    readonly code:
+      | 'INVALID_DATE'
+      | 'INVALID_QUERY_PARAMETER'
+      | 'TRACK_NOT_FOUND'
+      | 'ROUTE_NOT_FOUND'
+      | 'INTERNAL_ERROR';
+    readonly message: string;
+    readonly requestId?: string;
+  };
 }
 
 export function isPublicationDate(value: string): boolean {
@@ -24,61 +46,86 @@ export function isPublicationDate(value: string): boolean {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isImageUrl(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isImageUrl(value: unknown, fixtures: boolean): boolean {
   return (
-    value.startsWith('/fixtures/') || (URL.canParse(value) && new URL(value).protocol === 'https:')
+    typeof value === 'string' &&
+    ((fixtures && value.startsWith('/fixtures/')) ||
+      (URL.canParse(value) && new URL(value).protocol === 'https:'))
   );
 }
 
 function isSpotifyUrl(value: unknown): boolean {
-  if (value === null) return true;
   if (typeof value !== 'string' || !URL.canParse(value)) return false;
   const url = new URL(value);
   return (
-    url.protocol === 'https:' &&
-    url.hostname === 'open.spotify.com' &&
-    /^\/track\/[A-Za-z0-9]{22}$/.test(url.pathname) &&
+    url.origin === 'https://open.spotify.com' &&
+    /^\/track\/[A-Za-z0-9_-]+$/.test(url.pathname) &&
     !url.username &&
     !url.password
   );
 }
 
-export function parseTrack(value: unknown): Track {
+function parseTrack(value: unknown, fixtures: boolean): Track {
   if (
     !isRecord(value) ||
-    !['title', 'artist', 'album', 'description'].every(
-      (field) => typeof value[field] === 'string' && value[field].trim().length > 0,
+    !['title', 'artist', 'album', 'spotifyTrackId', 'selectionCriterion'].every((field) =>
+      isNonEmptyString(value[field]),
     ) ||
     typeof value['date'] !== 'string' ||
     !isPublicationDate(value['date']) ||
-    !isImageUrl(value['coverUrl']) ||
-    !isSpotifyUrl(value['spotifyUrl'])
+    !Number.isInteger(value['releaseYear']) ||
+    !isSpotifyUrl(value['spotifyUrl']) ||
+    typeof value['createdAt'] !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value['createdAt']) ||
+    !isPublicationDate(value['createdAt'].slice(0, 10)) ||
+    !Number.isFinite(Date.parse(value['createdAt'])) ||
+    (value['coverUrl'] !== undefined && !isImageUrl(value['coverUrl'], fixtures)) ||
+    (value['description'] !== undefined && typeof value['description'] !== 'string')
   ) {
     throw new Error('Invalid track response');
   }
   return value as unknown as Track;
 }
 
-export function parseTrackPage(value: unknown): TrackPage {
-  if (
-    !isRecord(value) ||
-    !Array.isArray(value['items']) ||
-    !['page', 'pageSize', 'total'].every((key) => Number.isSafeInteger(value[key])) ||
-    (value['page'] as number) < 1 ||
-    (value['pageSize'] as number) < 1 ||
-    (value['total'] as number) < 0 ||
-    value['items'].length > (value['pageSize'] as number)
-  ) {
+export function parseTrackResponse(value: unknown, fixtures = false): TrackResponse {
+  if (!isRecord(value)) throw new Error('Invalid track response');
+  return { data: parseTrack(value['data'], fixtures) };
+}
+
+export function parseTrackListResponse(value: unknown, fixtures = false): TrackListResponse {
+  if (!isRecord(value) || !Array.isArray(value['data']) || !isRecord(value['pagination'])) {
     throw new Error('Invalid history response');
   }
+  const { limit, nextCursor } = value['pagination'];
+  if (
+    typeof limit !== 'number' ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 100 ||
+    value['data'].length > limit ||
+    (nextCursor !== null && !isNonEmptyString(nextCursor))
+  ) {
+    throw new Error('Invalid history pagination');
+  }
   return {
-    items: value['items'].map(parseTrack),
-    page: value['page'] as number,
-    pageSize: value['pageSize'] as number,
-    total: value['total'] as number,
+    data: value['data'].map((track) => parseTrack(track, fixtures)),
+    pagination: { limit, nextCursor },
   };
+}
+
+export function hasApiErrorCode(value: unknown, code: ErrorResponse['error']['code']): boolean {
+  if (!isRecord(value) || !isRecord(value['error'])) return false;
+  const error = value['error'];
+  return (
+    error['code'] === code &&
+    isNonEmptyString(error['message']) &&
+    (error['requestId'] === undefined || typeof error['requestId'] === 'string')
+  );
 }
