@@ -1,1 +1,1 @@
-export const environment = { apiBaseUrl: '/api', fixtures: true } as const;
+export const environment = { apiBaseUrl: '/api', fixtures: true, spotifyPlaylists: {} } as const;

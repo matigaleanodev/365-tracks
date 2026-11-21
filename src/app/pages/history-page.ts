@@ -1,15 +1,38 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { combineLatest, distinctUntilChanged, map, switchMap } from 'rxjs';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { exhaustMap, scan, startWith, Subject } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { loadState } from '../core/load-state';
+import type { Track } from '../core/track';
 import { TracksApi } from '../core/tracks-api';
 import { AlbumCover } from '../shared/album-cover';
 
-export function parsePage(value: string | null): number {
-  const page = Number(value);
-  return value !== null && /^\d+$/.test(value) && Number.isSafeInteger(page) && page > 0 ? page : 1;
+interface HistoryState {
+  readonly status: 'loading' | 'error' | 'ready';
+  readonly tracks: readonly Track[];
+  readonly nextCursor: string | null;
+}
+
+const initialState: HistoryState = { status: 'loading', tracks: [], nextCursor: null };
+
+function publicPlaylists(config: Readonly<Record<string, string>>) {
+  return Object.entries(config)
+    .flatMap(([year, value]) => {
+      if (!/^\d{4}$/.test(year) || Number(year) < 2027 || !URL.canParse(value)) return [];
+      const url = new URL(value);
+      if (
+        url.origin !== 'https://open.spotify.com' ||
+        url.username ||
+        url.password ||
+        !/^\/playlist\/[A-Za-z0-9]{22}\/?$/.test(url.pathname)
+      ) {
+        return [];
+      }
+      return [{ year, href: url.origin + url.pathname }];
+    })
+    .sort((a, b) => Number(b.year) - Number(a.year));
 }
 
 @Component({
@@ -20,26 +43,35 @@ export function parsePage(value: string | null): number {
 })
 export class HistoryPage {
   private readonly api = inject(TracksApi);
-  private readonly route = inject(ActivatedRoute);
-  private readonly retries = signal(0);
-  private readonly pageChanges = this.route.queryParamMap.pipe(
-    map((params) => parsePage(params.get('page'))),
-    distinctUntilChanged(),
-  );
-  protected readonly page = toSignal(this.pageChanges, { initialValue: 1 });
+  private readonly requests = new Subject<string | null>();
+  protected readonly playlists = environment.fixtures
+    ? []
+    : publicPlaylists(environment.spotifyPlaylists);
   protected readonly state = toSignal(
-    combineLatest([this.pageChanges, toObservable(this.retries)]).pipe(
-      switchMap(([page]) => loadState(this.api.history(page))),
+    this.requests.pipe(
+      startWith(null),
+      exhaustMap((cursor) => loadState(this.api.history(cursor))),
+      scan((state: HistoryState, result): HistoryState => {
+        if (result.status !== 'ready') return { ...state, status: result.status };
+
+        const tracks = new Map(state.tracks.map((track) => [track.date, track]));
+        for (const track of result.data.data) {
+          if (!tracks.has(track.date)) tracks.set(track.date, track);
+        }
+        return {
+          status: 'ready',
+          tracks: [...tracks.values()],
+          nextCursor: result.data.pagination.nextCursor,
+        };
+      }, initialState),
     ),
-    { initialValue: { status: 'loading' } as const },
+    { initialValue: initialState },
   );
-  protected readonly totalPages = computed(() => {
-    const result = this.state();
-    return result.status === 'ready'
-      ? Math.max(1, Math.ceil(result.data.total / result.data.pageSize))
-      : 1;
-  });
-  protected retry(): void {
-    this.retries.update((value) => value + 1);
+
+  protected loadMore(): void {
+    const { status, nextCursor } = this.state();
+    if (status === 'error' || (status === 'ready' && nextCursor !== null)) {
+      this.requests.next(nextCursor);
+    }
   }
 }

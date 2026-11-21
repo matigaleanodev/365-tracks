@@ -191,10 +191,6 @@ p {
   font-weight: 650;
   font-size: 1.3rem;
 }
-.sleeve-caption {
-  color: var(--muted);
-  font-size: 0.8rem;
-}
 .empty-copy h1 {
   font-size: clamp(2.6rem, 5.5vw, 4rem);
   line-height: 1.04;
@@ -204,16 +200,9 @@ p {
 .empty-copy > p:not(.section-label) {
   color: var(--muted);
 }
-.launch-note {
-  padding-block: 1rem;
-}
-.launch-note strong {
-  color: var(--ink);
-  font-weight: 600;
-}
 .history-heading {
   max-width: 42rem;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 .history-heading h1 {
   font-size: clamp(3rem, 7vw, 5rem);
@@ -223,6 +212,27 @@ p {
 }
 .history-heading > p:last-child {
   color: var(--muted);
+}
+.history-playlists {
+  margin-bottom: 2rem;
+  border-block: 1px solid var(--line);
+  padding-block: 1rem;
+}
+.history-playlists h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.history-playlists p {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+.history-playlists ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 .history-grid {
   list-style: none;
@@ -274,6 +284,9 @@ p {
   .empty-feature {
     grid-template-columns: 1.05fr 1fr;
     gap: clamp(2.5rem, 6vw, 6rem);
+  }
+  .empty-sleeve {
+    order: -1;
   }
   .history-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

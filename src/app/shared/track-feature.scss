@@ -29,6 +29,9 @@ h1 {
   color: var(--muted);
   margin: 0;
 }
+.album + .button {
+  margin-top: 1.5rem;
+}
 .selection {
   border-top: 1px solid var(--line);
   margin: 2rem 0;
@@ -39,15 +42,14 @@ h2 {
   margin: 0 0 0.7rem;
 }
 .selection p {
-  color: var(--muted);
-  line-height: 1.8;
+  max-width: 55ch;
   margin: 0;
   white-space: pre-line;
 }
 @media (min-width: 760px) {
   .track-feature {
-    grid-template-columns: 1.05fr 1fr;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     gap: clamp(2.5rem, 6vw, 6rem);
-    align-items: center;
+    align-items: start;
   }
 }

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
 
 @Component({
   selector: 'app-album-cover',
-  template: `@if (!failed()) {
+  template: `@if (!showFallback()) {
       <img
         [src]="src()"
         [alt]="'Portada de ' + album()"
@@ -43,11 +43,11 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AlbumCover {
-  readonly src = input.required<string>();
+  readonly src = input.required<string | undefined>();
   readonly album = input.required<string>();
   readonly priority = input(false);
-  private readonly failedUrl = signal<string | null>(null);
-  protected readonly failed = computed(() => this.failedUrl() === this.src());
+  private readonly failedUrl = signal<string | undefined>(undefined);
+  protected readonly showFallback = computed(() => !this.src() || this.failedUrl() === this.src());
   protected markFailed(): void {
     this.failedUrl.set(this.src());
   }

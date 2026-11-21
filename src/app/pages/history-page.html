@@ -1,58 +1,58 @@
 <div class="history-heading">
-  <p class="section-label">Para volver a escuchar</p>
   <h1>El historial.</h1>
-  <p>Las canciones que fueron parte de otros días, de la más reciente a la primera.</p>
+  <p>Las canciones publicadas, de la más reciente a la primera.</p>
 </div>
-@let result = state();
-@if (result.status === 'loading') {
-  <p class="state-panel" role="status">Cargando el historial…</p>
-} @else if (result.status === 'error') {
-  <section class="state-panel" role="alert">
-    <h2>No se pudo cargar el historial.</h2>
-    <p>Volvé a intentarlo en un momento.</p>
-    <button class="button primary" (click)="retry()">Reintentar</button>
-  </section>
-} @else {
-  @if (result.data.items.length) {
-    <ul class="history-grid">
-      @for (track of result.data.items; track track.date) {
+@if (playlists.length) {
+  <section class="history-playlists" aria-labelledby="playlists-title">
+    <h2 id="playlists-title">Archivo anual en Spotify</h2>
+    <p>
+      Las canciones se agregan a Spotify cuando su fecha de publicación ya terminó en todas las
+      zonas horarias.
+    </p>
+    <ul>
+      @for (playlist of playlists; track playlist.year) {
         <li>
-          <a class="history-track" [routerLink]="['/tracks', track.date]">
-            <app-album-cover [src]="track.coverUrl" [album]="track.album" />
-            <time [attr.datetime]="track.date">{{ track.date | date: 'd MMM yyyy' : 'UTC' }}</time>
-            <h2>{{ track.title }}</h2>
-            <p>{{ track.artist }}</p>
+          <a class="text-link" [href]="playlist.href" target="_blank" rel="noopener noreferrer">
+            Playlist {{ playlist.year }} en Spotify <span aria-hidden="true">↗</span>
+            <span class="sr-only"> (se abre en otra pestaña)</span>
           </a>
         </li>
       }
     </ul>
-  } @else {
-    <section class="state-panel">
-      <h2>
-        {{
-          page() === 1
-            ? 'El archivo empieza con la primera canción.'
-            : 'No hay canciones en esta página.'
-        }}
-      </h2>
-      <p>Las selecciones estarán disponibles desde el 1 de enero de 2027.</p>
-    </section>
-  }
-  @if (totalPages() > 1 || page() > 1) {
-    <nav class="pagination" aria-label="Páginas del historial">
-      @if (page() > 1) {
-        <a class="button secondary" routerLink="/history" [queryParams]="{ page: page() - 1 }"
-          >Anterior</a
-        >
-      }
-      <span aria-current="page">Página {{ page() }} de {{ totalPages() }}</span>
-      @if (page() < totalPages()) {
-        <a class="button secondary" routerLink="/history" [queryParams]="{ page: page() + 1 }"
-          >Siguiente</a
-        >
-      } @else if (page() > totalPages()) {
-        <a class="button secondary" routerLink="/history">Volver al inicio</a>
-      }
-    </nav>
-  }
+  </section>
+}
+@let result = state();
+@if (result.tracks.length) {
+  <ul class="history-grid">
+    @for (track of result.tracks; track track.date) {
+      <li>
+        <a class="history-track" [routerLink]="['/tracks', track.date]">
+          <app-album-cover [src]="track.coverUrl" [album]="track.album" />
+          <time [attr.datetime]="track.date">{{ track.date | date: 'd MMM yyyy' : 'UTC' }}</time>
+          <h2>{{ track.title }}</h2>
+          <p>{{ track.artist }}</p>
+        </a>
+      </li>
+    }
+  </ul>
+}
+@if (result.status === 'loading') {
+  <p class="pagination" role="status">Cargando el historial…</p>
+} @else if (result.status === 'error') {
+  <section class="state-panel" role="alert">
+    <h2>No se pudo cargar el historial.</h2>
+    <p>Volvé a intentarlo en un momento.</p>
+    <button class="button primary" (click)="loadMore()">Reintentar</button>
+  </section>
+} @else if (result.nextCursor !== null) {
+  <div class="pagination">
+    <button class="button secondary" (click)="loadMore()">Cargar más canciones</button>
+  </div>
+} @else if (result.tracks.length) {
+  <p class="pagination" role="status">Llegaste al final del historial.</p>
+} @else {
+  <section class="state-panel">
+    <h2>El archivo empieza con la primera canción.</h2>
+    <p>Todavía no hay canciones publicadas.</p>
+  </section>
 }
