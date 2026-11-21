@@ -26,10 +26,10 @@ Este modo local separado intercepta los tres endpoints de canciones. Sus cancion
 npm run lint
 npm run format:check
 npm test
-npm run build
+npm run build:check
 ```
 
-`npm run format` aplica formato; `npm run test:watch` activa el modo observación. GitHub Actions valida lint, formato, tests unitarios y build de producción, sin desplegar.
+`npm run format` aplica formato y `npm run test:watch` activa el modo observación. GitHub Actions ejecuta las mismas comprobaciones. `build:check` compila la configuración de producción con una URL de validación aislada y deja la salida en `.tmp/production-check/browser`.
 
 ## Arquitectura
 
@@ -45,7 +45,7 @@ Angular 22 standalone, TypeScript strict, SCSS, rutas lazy con Angular Router y 
 
 ## Configuración y contrato de la API
 
-Configurar `apiBaseUrl` en `src/environments/environment.ts` antes del build de producción. Usá la URL del stage que devuelve el output `ApiUrl` del stack del backend y agregá el prefijo `/api` (por ejemplo, `https://<api-id>.execute-api.<region>.amazonaws.com/api` para el stage predeterminado). Desarrollo reemplaza ese archivo por `environment.development.ts`; fixtures usa `environment.fixtures.ts` y reemplaza los providers de fixtures, vacíos por defecto. Otros entornos pueden usar file replacements de Angular. Estos valores son configuración pública de compilación, nunca secretos; las variables del hosting no se inyectan automáticamente en el navegador.
+Definí `API_BASE_URL` con la URL pública HTTPS del output `ApiUrl` del stack del backend. Conservá la ruta del stage si existe y agregá `/api` al final. Ejecutá `npm run build` con esa variable definida. El build valida la URL y la pasa a Angular mediante un archivo de entorno temporal. Desarrollo y fixtures conservan sus propios reemplazos de archivo.
 
 El frontend consume el contrato de `365-tracks-api`:
 
@@ -54,18 +54,20 @@ El frontend consume el contrato de `365-tracks-api`:
 - `Track` requiere `date`, `title`, `artist`, `album`, `releaseYear`, `spotifyTrackId`, `spotifyUrl`, `selectionCriterion` y `createdAt`. `coverUrl` y `description` se pueden omitir.
 - Los errores tienen el formato `{ error: { code, message, requestId? } }`. Los fallos inesperados y las respuestas exitosas malformadas permiten reintentar.
 
-El frontend envía la zona horaria IANA del navegador o `UTC` si falla la detección. En el inicio, un cambio de fecha local vuelve a consultar `/tracks/today`, también al regresar a una pestaña oculta. La API determina qué publicaciones son visibles y devuelve la fecha que se muestra con cada canción.
+El frontend envía la zona horaria IANA del navegador o `UTC` si falla la detección. La API determina qué publicaciones son visibles y devuelve la fecha que se muestra con cada canción. En el inicio, un cambio de fecha local vuelve a consultar `/tracks/today`, también al regresar a una pestaña oculta. Si la API todavía devuelve una fecha anterior o `TRACK_NOT_FOUND`, el inicio puede reintentar durante los primeros dos minutos del día local.
+
+El reloj del visitante programa estas consultas. Si está atrasado, la actualización puede demorarse lo que dure el desfase. Para sincronizarla con precisión, la API tendría que exponer su reloj o el instante de la próxima publicación tanto en respuestas exitosas como en `TRACK_NOT_FOUND`. JavaScript solo puede leer el encabezado HTTP `Date` de otro origen si CORS lo expone explícitamente.
 
 ## Archivo en Spotify
 
-En el archivo de entorno correspondiente, agregá la URL pública de Spotify a `spotifyPlaylists` con el año como clave, desde `2027`. Configurala cuando la playlist ya sea pública. Para años siguientes, agregá entradas al mismo mapa. Historial muestra los enlaces HTTPS válidos en otra pestaña y ordena los años de más a menos reciente. Dejá el mapa vacío para ocultar la sección. El modo fixtures siempre la oculta.
+Definí `SPOTIFY_PLAYLISTS` al compilar como un objeto JSON cuyas claves sean años desde `2027` y cuyos valores sean las URLs públicas `https://open.spotify.com/playlist/` con los identificadores de las playlists correspondientes. Agregá cada playlist cuando sea pública. Historial muestra los enlaces en otra pestaña y ordena los años de más a menos reciente. Omití la variable o usá `{}` para ocultar la sección. El modo fixtures siempre la oculta.
 
 La playlist se actualiza fuera de Angular. Una canción puede aparecer en el historial de la app antes de que se agregue a Spotify, porque la playlist espera a que la fecha de publicación termine en todas las zonas horarias. La canción del día tiene su propio enlace a Spotify. El acceso a la playlist y su sincronización no requieren un endpoint público nuevo.
 
 ## Cloudflare Pages
 
-Compilar como SPA estática con `npm run build`. La carpeta de salida es `dist/365-tracks/browser`. Configurar Node.js según `.nvmrc`, apuntar el entorno de API al backend real y habilitar el origen del frontend en CORS. El `index.html` raíz de Angular y la ausencia de un `404.html` raíz permiten que el fallback SPA nativo de Cloudflare Pages sirva las rutas profundas. `public/_headers` define encabezados básicos de respuesta.
+Usá `npm run build` y publicá `dist/365-tracks/browser`. Configurá Node.js según `.nvmrc`, definí `API_BASE_URL` y, opcionalmente, `SPOTIFY_PLAYLISTS` en el entorno de build. Ambos valores quedan en el código del navegador y solo deben contener URLs públicas. Para Direct Upload, definí las mismas variables en la terminal donde compilás. Para una vista previa local, serví la salida del build con un servidor estático que resuelva las rutas de la aplicación con `index.html`.
 
-No se configura cuenta de Cloudflare, proyecto Pages, despliegue de producción ni despliegue automático. Cuando se autorice el hosting, se puede subir el build estático mediante Direct Upload para evitar despliegues automáticos por Git.
+Cuando se defina el dominio, agregá el origen público exacto del frontend a `CORS_ALLOWED_ORIGINS` del backend. Usá `https://<dominio-del-frontend>` con puerto solo si corresponde, sin ruta ni barra final. Si se usan un dominio propio y un host `pages.dev`, agregá sus orígenes por separado. El `index.html` raíz de Angular y la ausencia de un `404.html` raíz habilitan el fallback SPA de Pages para las rutas profundas. `public/_headers` define encabezados de respuesta.
 
 Referencia: [Compatibilidad de Angular](https://angular.dev/reference/versions), [Angular en Cloudflare](https://developers.cloudflare.com/pages/framework-guides/deploy-an-angular-site/), [Rutas SPA en Pages](https://developers.cloudflare.com/pages/configuration/serving-pages/#single-page-application-spa-rendering).
