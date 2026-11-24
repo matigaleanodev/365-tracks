@@ -1,8 +1,8 @@
-# 365 Tracks
+# Daywave
 
 [Español](README.es.md)
 
-Public music discovery frontend: one shared daily song, a short selection note, Spotify links and a chronological archive. The [Daily Edition design](DESIGN.en.md) defines the target identity.
+Public music discovery frontend: one shared daily song, a short selection note, Spotify links and a chronological archive. The [Daily Edition design](DESIGN.en.md) documents the brand and its assets.
 
 ## Development
 

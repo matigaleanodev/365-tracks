@@ -32,9 +32,11 @@ main {
   white-space: nowrap;
 }
 
-.brand-number {
+.brand-record {
+  width: 0.9em;
+  height: 0.9em;
+  flex: none;
   color: var(--accent);
-  font-weight: 750;
 }
 
 nav {

@@ -1,4 +1,4 @@
-# 365 Tracks · Edición diaria
+# Daywave · Edición diaria
 
 [English](DESIGN.en.md)
 
@@ -6,9 +6,11 @@ Referencia del diseño de Edición diaria. La base de estilos comparte tokens se
 
 ## Identidad
 
-365 Tracks publica una selección musical compartida por día, acompañada de una nota breve y una salida a Spotify. La fecha, la canción y la portada componen la edición. La nota propone algo concreto para escuchar. El historial recoge las ediciones publicadas por mes.
+Daywave publica una selección musical compartida por día, acompañada de una nota breve y una salida a Spotify. La fecha, la canción y la portada componen la edición. La nota propone algo concreto para escuchar. El historial recoge las ediciones publicadas por mes.
 
-El wordmark es **365 Tracks**, Source Sans 3, 700 en Tracks y 750 en 365, tracking −0,04 em. Los numerales llevan el acento violeta y Tracks usa el color de primer plano. Se mantiene en una línea. La aplicación usa el favicon de disco violeta. La variante de marca aprobada para el favicon representa 365 y una regla inferior sobre violeta, con cifras trazadas para mantener su silueta al reducirse. El símbolo de la nota musical, los controles de reproducción y el verde de Spotify quedan fuera de la marca. El texto de interfaz usa español rioplatense y verbos concretos.
+El wordmark **Daywave** usa Source Sans 3 en peso 700, tracking −0,04 em y color de primer plano en una línea. Lo acompaña un disco de vinilo SVG monocromático que toma el acento del tema mediante `currentColor`. El slogan **One day. One song. One world.** se usa en el prelanzamiento y en la presentación de la marca. El texto de interfaz usa español rioplatense y verbos concretos.
+
+El logo (`public/daywave-mark.svg` y el wordmark del encabezado) y el favicon (`public/favicon.svg`) son provisionales. Su diseño definitivo se abordará durante la preparación para el lanzamiento.
 
 ## Fecha y número de edición
 
@@ -74,7 +76,7 @@ Newsreader (Production Type) y Source Sans 3 (Adobe) usan SIL OFL 1.1. Conservar
 | Portada ausente o fallida | Ficha de superficie violeta tenue, wordmark, folio y álbum. Si no hay folio, se puede usar el año de la fecha. Etiqueta visible y accesible «Portada no disponible». El nombre completo también se muestra fuera de la ficha. Miniatura sin imagen usa una marca neutra sin repetir el día. Error y datos ausentes comparten geometría. Restaurar oportunidad de carga cuando cambie la URL.                         |
 | Historial                 | Mes y año, secciones enlazadas a su heading y listas de filas descendentes. Día, miniatura, título, artista y chevrón. Usar fecha completa como alternativa para AT. Una entrada ocupa todo el ancho de la lista. Mantener cursor opaco, deduplicar por fecha y extender grupos que crucen páginas.                                                                                                                  |
 | Playlists                 | Sección anual al final de Historial y enlace de salto junto al título cuando haya una URL pública configurada. Años descendentes y enlace «Playlist [año] en Spotify». Ayuda «Las canciones pueden tardar en aparecer en Spotify». Omisión de sección y enlace con configuración vacía.                                                                                                                              |
-| Prelanzamiento            | Portada editorial tipográfica. «Estreno el 1 de enero de 2027», «Una canción compartida cada día.» y descripción breve.                                                                                                                                                                                                                                                                                              |
+| Prelanzamiento            | Portada editorial tipográfica. «Estreno el 1 de enero de 2027», «Una canción compartida cada día.», slogan en inglés y descripción breve.                                                                                                                                                                                                                                                                            |
 | Sin publicación           | «Todavía no hay canción de hoy» o «No hay canción para esta fecha». Enlace al historial. Sin promesa horaria. Fecha inválida mantiene un estado separado con formato esperado.                                                                                                                                                                                                                                       |
 | Carga inicial             | Geometría aproximada del contenido, arte con espacio reservado, encabezado de nivel uno y mensaje visible con `role=status`. Esqueletos decorativos y estáticos. El colofón se muestra al resolver la carga inicial de la edición o el historial.                                                                                                                                                                    |
 | Error inicial y reintento | Descripción directa, botón «Reintentar». Mientras espera, aspecto y semántica de pendiente, impedir repetición y conservar el foco. Éxito de navegación y reintento inicial llevan al encabezado principal.                                                                                                                                                                                                          |

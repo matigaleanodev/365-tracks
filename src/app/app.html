@@ -2,9 +2,12 @@
   >Saltar al contenido</a
 >
 <header class="site-header">
-  <a class="wordmark" routerLink="/" aria-label="365 Tracks, inicio"
-    ><span class="brand-number">365</span> <span>Tracks</span></a
-  >
+  <a class="wordmark" routerLink="/" aria-label="Daywave, inicio">
+    <svg class="brand-record" viewBox="0 0 24 24" aria-hidden="true">
+      <use href="daywave-mark.svg#record" />
+    </svg>
+    Daywave
+  </a>
   <nav aria-label="Navegación principal">
     @let historyOrigin = historyReturn.detailOriginUrl();
     <a
@@ -60,5 +63,5 @@
 }
 <main #content id="content" tabindex="-1"><router-outlet /></main>
 <footer class="site-footer">
-  <p>Una canción compartida cada día.</p>
+  <p>Daywave · Una canción compartida cada día.</p>
 </footer>

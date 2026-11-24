@@ -1,10 +1,12 @@
-# 365 Tracks · Daily Edition
+# Daywave · Daily Edition
 
 [Español](DESIGN.md)
 
 Daily Edition design reference. The styling foundation shares semantic tokens between SCSS and Tailwind.
 
-365 Tracks is a shared daily music selection, with one listening note and a Spotify link. Violet, the edition rule, date and serif track title establish its editorial identity. The Source Sans 3 wordmark uses accented 365 and foreground Tracks, and the app uses the violet record favicon. The approved favicon variant uses outlined 365 lettering and a rule. The same hierarchy governs both themes.
+Daywave is a shared daily music selection, with one listening note and a Spotify link. Violet, the edition rule, date and serif track title establish its editorial identity. The **Daywave** wordmark uses Source Sans 3 at weight 700 with −0.04 em tracking and the foreground color on one line. A monochrome vinyl record SVG takes the theme accent through `currentColor`. The tagline **One day. One song. One world.** appears on the prelaunch screen and in product introductions. The interface uses Rioplatense Spanish.
+
+The logo (`public/daywave-mark.svg` and the header wordmark) and favicon (`public/favicon.svg`) are provisional. Their final design will be addressed during launch preparation.
 
 ## Editions and surfaces
 
@@ -12,7 +14,7 @@ Use the API's valid ISO civil date and display it in Spanish using UTC semantics
 
 Today and detail use date, title, artist, listening action, album and year, artwork, then the optional note. Offer «Volver al historial» from a known archive origin and «Ir al historial» for a direct visit. The monthly archive uses descending sections with whole-row links and a reserved thumbnail. Load pages by opaque cursor, extend the same month and deduplicate dates. When a public playlist is configured, the annual section sits below the archive and has a jump link beside the heading. The configured destinations open in another tab.
 
-Prelaunch features «Estreno el 1 de enero de 2027» and «Una canción compartida cada día.» with a small masthead. A valid unpublished date, invalid date, empty archive, and unknown page each have their own copy and a useful exit. Static loading placeholders reserve geometry and sit alongside an accessible heading and status. The colophon appears once initial loading resolves in Today, the detail or the archive. Errors offer retry, preserve any already loaded rows and keep the pending control perceptible.
+Prelaunch features «Estreno el 1 de enero de 2027» and «Una canción compartida cada día.», the English tagline, and a small masthead. A valid unpublished date, invalid date, empty archive, and unknown page each have their own copy and a useful exit. Static loading placeholders reserve geometry and sit alongside an accessible heading and status. The colophon appears once initial loading resolves in Today, the detail or the archive. Errors offer retry, preserve any already loaded rows and keep the pending control perceptible.
 
 ## Tokens and typography
 

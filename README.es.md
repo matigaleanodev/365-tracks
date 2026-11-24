@@ -1,8 +1,8 @@
-# 365 Tracks
+# Daywave
 
 [English](README.md)
 
-Frontend público de descubrimiento musical: una canción diaria compartida, una breve explicación, enlaces a Spotify e historial cronológico. El [diseño de Edición diaria](DESIGN.md) define la identidad objetivo.
+Frontend público de descubrimiento musical: una canción diaria compartida, una breve explicación, enlaces a Spotify e historial cronológico. El [diseño de Edición diaria](DESIGN.md) documenta la marca y sus recursos.
 
 ## Desarrollo
 
