@@ -1,0 +1,14 @@
+.edition-back {
+  margin-block: -0.4rem 0.75rem;
+}
+.edition-back a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+
+.launch-title {
+  max-width: 12ch;
+  margin-block: 2rem 1rem;
+  font-size: clamp(2.75rem, 10vw, 7.25rem);
+  text-wrap: wrap;
+}

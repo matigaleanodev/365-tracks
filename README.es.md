@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Frontend público de descubrimiento musical: una canción diaria compartida, una breve explicación, enlaces a Spotify e historial cronológico. El nombre y la estética son provisionales.
+Frontend público de descubrimiento musical: una canción diaria compartida, una breve explicación, enlaces a Spotify e historial cronológico. El [diseño de Edición diaria](DESIGN.md) define la identidad objetivo.
 
 ## Desarrollo
 
@@ -41,7 +41,7 @@ Angular 22 standalone, TypeScript strict, SCSS, rutas lazy con Angular Router y 
 | `/history`      | Historial descendente con carga incremental             |
 | `/tracks/:date` | Canción de una fecha o estado sin publicación           |
 
-`src/app/core` contiene el contrato tipado y la validación de respuestas; `pages`, las vistas enrutadas; `shared`, la portada y la presentación completa de una canción. `src/app/dev` y `dev-assets` contienen fixtures locales. El tema sigue la preferencia clara/oscura del sistema. Las fechas sin hora se presentan en UTC para evitar mostrar el día anterior en zonas negativas. El backend determina el día de publicación compartido.
+`src/app/core` contiene el contrato tipado y la validación de respuestas; `pages`, las vistas enrutadas; `shared`, la portada y la presentación completa de una canción. `src/app/dev` y `dev-assets` contienen fixtures locales. El selector de tema sigue al sistema por defecto y guarda una elección explícita de Claro u Oscuro. Las fechas sin hora se presentan en UTC para evitar mostrar el día anterior en zonas negativas. El backend determina el día de publicación compartido.
 
 ## Configuración y contrato de la API
 

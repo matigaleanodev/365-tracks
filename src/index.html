@@ -9,6 +9,16 @@
       name="description"
       content="Una canción al día, una historia para escucharla de otra manera. Descubrí 365 Tracks desde el 1 de enero de 2027."
     />
+    <script>
+      try {
+        const theme = localStorage.getItem('365-tracks-theme');
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.style.colorScheme = theme;
+        }
+      } catch {
+        // Use the system preference when storage is unavailable.
+      }
+    </script>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   </head>
   <body>

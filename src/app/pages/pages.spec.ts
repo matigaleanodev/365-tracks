@@ -27,8 +27,9 @@ describe('Public pages', () => {
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
   };
   const historyDates = () =>
-    Array.from(harness.routeNativeElement?.querySelectorAll('.history-grid time') ?? [], (date) =>
-      date.getAttribute('datetime'),
+    Array.from(
+      harness.routeNativeElement?.querySelectorAll('app-history-page section ul time') ?? [],
+      (date) => date.getAttribute('datetime'),
     );
   const historyRequest = (cursor: string | null = null) =>
     http.expectOne(
@@ -66,7 +67,7 @@ describe('Public pages', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2027-01-01T04:59:00Z'));
     await harness.navigateByUrl('/');
-    expect(text()).toContain('Buscando');
+    expect(text()).toContain('Cargando la canción del día');
     const unpublished = () =>
       http
         .expectOne((req) => req.url.endsWith('/today') && req.params.get('timezone') === timezone)
@@ -76,16 +77,17 @@ describe('Public pages', () => {
         });
     unpublished();
     harness.detectChanges();
-    expect(text()).toContain('El calendario musical todavía no empezó');
+    expect(text()).toContain('Una canción compartida cada día.');
     expect(harness.routeNativeElement?.querySelector('time')?.dateTime).toBe('2027-01-01');
-    expect(harness.routeNativeElement?.querySelector('a[href="/history"]')).toBeTruthy();
+    expect(harness.routeNativeElement?.querySelector('a[href="/history"]')).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('[data-folio]')).toBeNull();
 
     vi.setSystemTime(new Date('2027-01-01T05:00:00Z'));
     document.defaultView?.dispatchEvent(new Event('pageshow'));
     unpublished();
     harness.detectChanges();
-    expect(text()).toContain('Todavía no hay una canción publicada para hoy');
-    expect(text()).not.toContain('El calendario musical todavía no empezó');
+    expect(text()).toContain('Todavía no hay canción de hoy');
+    expect(text()).not.toContain('Una canción compartida cada día.');
   });
 
   it('refreshes only today when a hidden tab returns on a new local date', async () => {
@@ -219,7 +221,7 @@ describe('Public pages', () => {
     vi.advanceTimersByTime(180_000);
     http.expectNone(() => true);
     harness.detectChanges();
-    expect(text()).toContain('El calendario musical todavía no empezó');
+    expect(text()).toContain('Una canción compartida cada día.');
   });
 
   it('stops checking an unprepared selection after the midnight window', async () => {
@@ -232,7 +234,7 @@ describe('Public pages', () => {
     await harness.navigateByUrl('/');
     unpublished();
     harness.detectChanges();
-    expect(text()).toContain('Todavía no hay una canción publicada para hoy');
+    expect(text()).toContain('Todavía no hay canción de hoy');
 
     for (let attempt = 0; attempt < 2; attempt++) {
       vi.advanceTimersByTime(59_999);
@@ -243,7 +245,7 @@ describe('Public pages', () => {
     vi.advanceTimersByTime(12 * 60 * 60 * 1000);
     http.expectNone(() => true);
     harness.detectChanges();
-    expect(text()).toContain('Todavía no hay una canción publicada para hoy');
+    expect(text()).toContain('Todavía no hay canción de hoy');
   });
 
   it('removes a scheduled midnight recheck when navigating to historical detail', async () => {
@@ -261,6 +263,46 @@ describe('Public pages', () => {
     expect(text()).toContain(sampleTrack.title);
   });
 
+  it.each([
+    ['2027-01-01', '001'],
+    ['2027-02-04', '035'],
+    ['2027-12-31', '365'],
+    ['2028-01-01', null],
+  ])('displays the editorial folio for API date %s', async (date, folio) => {
+    await harness.navigateByUrl('/tracks/' + date);
+    http.expectOne((req) => req.url.endsWith('/' + date)).flush({ data: { ...sampleTrack, date } });
+    harness.detectChanges();
+    const element = harness.routeNativeElement!;
+    expect(element.querySelector('time')?.dateTime).toBe(date);
+    expect(element.querySelector('[data-folio]')?.getAttribute('data-folio') ?? null).toBe(folio);
+    expect(element.querySelector('.editorial-note')).toBeNull();
+  });
+
+  it('preserves an incremental history row when returning from its detail', async () => {
+    await harness.navigateByUrl('/history?source=archive');
+    historyRequest().flush(historyBody([sampleTrack], 'next'));
+    harness.detectChanges();
+    button()?.click();
+    const later = { ...sampleTrack, date: '2027-01-02' };
+    historyRequest('next').flush(historyBody([later]));
+    harness.detectChanges();
+    harness.routeNativeElement
+      ?.querySelector<HTMLAnchorElement>('a[href="/tracks/2027-01-02"]')
+      ?.click();
+    await harness.fixture.whenStable();
+    http.expectOne((req) => req.url.endsWith('/2027-01-02')).flush({ data: later });
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    expect(text()).toContain('Volver al historial');
+    harness.routeNativeElement
+      ?.querySelector<HTMLAnchorElement>('a[href="/history?source=archive"]')
+      ?.click();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(historyDates()).toEqual([sampleTrack.date, later.date]);
+    http.expectNone((req) => req.url.endsWith('/tracks'));
+  });
+
   it('retries daily failures and displays the complete selection', async () => {
     await harness.navigateByUrl('/');
     http
@@ -270,10 +312,24 @@ describe('Public pages', () => {
         statusText: 'Error',
       });
     harness.detectChanges();
-    expect(text()).toContain('No pudimos cargar la selección');
-    button()?.click();
+    expect(text()).toContain('No pudimos cargar la canción');
+    const retry = button();
+    retry?.focus();
+    retry?.click();
     TestBed.tick();
-    http.expectOne((req) => req.url.endsWith('/today')).flush({ data: sampleTrackWithEditorial });
+    expect(button()).toBe(retry);
+    expect(retry?.getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(retry);
+    retry?.click();
+    todayRequest().flush(apiError('INTERNAL_ERROR'), { status: 500, statusText: 'Error' });
+    harness.detectChanges();
+    expect(button()).toBe(retry);
+    expect(retry?.getAttribute('aria-disabled')).toBeNull();
+    expect(document.activeElement).toBe(retry);
+
+    retry?.click();
+    TestBed.tick();
+    todayRequest().flush({ data: sampleTrackWithEditorial });
     harness.detectChanges();
     for (const copy of [
       sampleTrack.title,
@@ -294,6 +350,7 @@ describe('Public pages', () => {
     expect(spotify?.getAttribute('href')).toBe(sampleTrack.spotifyUrl);
     expect(spotify?.getAttribute('rel')).toBe('noopener noreferrer');
     expect(spotify?.textContent).toContain('se abre en otra pestaña');
+    expect(document.activeElement).toBe(harness.routeNativeElement?.querySelector('h1'));
   });
 
   it('distinguishes an invalid route date from an unpublished selection', async () => {
@@ -309,7 +366,7 @@ describe('Public pages', () => {
         statusText: 'Not Found',
       });
     harness.detectChanges();
-    expect(text()).toContain('Todavía no hay una canción para esta fecha');
+    expect(text()).toContain('No hay canción para esta fecha');
     expect(harness.routeNativeElement?.querySelector('a[href="/history"]')).toBeTruthy();
   });
 
@@ -353,8 +410,11 @@ describe('Public pages', () => {
     harness.detectChanges();
     expect(historyDates()).toEqual([newest.date, middle.date]);
     expect(
-      harness.routeNativeElement?.querySelector('.history-grid time')?.textContent?.trim(),
-    ).toBe('3 Jan 2027');
+      harness.routeNativeElement
+        ?.querySelector('app-history-page section ul time')
+        ?.querySelector('[aria-hidden=true]')
+        ?.textContent?.trim(),
+    ).toBe('03');
 
     const loadMore = button();
     expect(loadMore?.textContent).toContain('Cargar más canciones');
@@ -363,10 +423,10 @@ describe('Public pages', () => {
     const pending = historyRequest('opaque-cursor');
     harness.detectChanges();
     expect(historyDates()).toEqual([newest.date, middle.date]);
-    expect(text()).toContain('Cargando el historial');
+    expect(text()).toContain('Cargando más canciones');
     pending.flush(apiError('INTERNAL_ERROR'), { status: 500, statusText: 'Error' });
     harness.detectChanges();
-    expect(text()).toContain('No se pudo cargar el historial');
+    expect(text()).toContain('No se pudieron cargar más canciones');
     expect(historyDates()).toEqual([newest.date, middle.date]);
 
     button()?.click();
@@ -385,6 +445,34 @@ describe('Public pages', () => {
     expect(harness.routeNativeElement?.querySelector('a[href="/history"]')).toBeTruthy();
   });
 
+  it('keeps a month together across cursors and opens the next civil month in order', async () => {
+    const track = (date: string) => ({ ...sampleTrack, date });
+    const months = () =>
+      Array.from(
+        harness.routeNativeElement?.querySelectorAll('section[aria-labelledby^="month-"]') ?? [],
+        (section) => [
+          section.getAttribute('aria-labelledby'),
+          Array.from(section.querySelectorAll('time'), (date) => date.dateTime),
+        ],
+      );
+
+    await harness.navigateByUrl('/history');
+    historyRequest().flush(historyBody([track('2027-03-02')], 'march'));
+    harness.detectChanges();
+    expect(months()).toEqual([['month-2027-03', ['2027-03-02']]]);
+
+    button()?.click();
+    historyRequest('march').flush(
+      historyBody([track('2027-03-02'), track('2027-03-01'), track('2027-02-28')]),
+    );
+    harness.detectChanges();
+    expect(months()).toEqual([
+      ['month-2027-03', ['2027-03-02', '2027-03-01']],
+      ['month-2027-02', ['2027-02-28']],
+    ]);
+    expect(text()).toContain('Se agregaron 2 canciones.');
+  });
+
   it('renders an empty history with no continuation', async () => {
     await harness.navigateByUrl('/history');
     historyRequest().flush(historyBody([]));
@@ -393,6 +481,40 @@ describe('Public pages', () => {
     expect(harness.routeNativeElement?.querySelector('.history-playlists')).toBeNull();
     expect(historyDates()).toEqual([]);
     expect(button()).toBeNull();
+  });
+
+  it('announces the end when the last cursor returns no publications', async () => {
+    await harness.navigateByUrl('/history');
+    historyRequest().flush(historyBody([], 'next'));
+    harness.detectChanges();
+    expect(button()?.textContent).toContain('Cargar más canciones');
+
+    button()?.click();
+    historyRequest('next').flush(historyBody([]));
+    harness.detectChanges();
+    expect(button()).toBeNull();
+    expect(text()).toContain('Todavía no hay canciones publicadas');
+    expect(text()).toContain('Llegaste al final del historial.');
+  });
+
+  it('retries an initial history error through the same control until it succeeds', async () => {
+    await harness.navigateByUrl('/history');
+    historyRequest().flush(apiError('INTERNAL_ERROR'), { status: 500, statusText: 'Error' });
+    harness.detectChanges();
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain(
+      'No pudimos cargar el historial',
+    );
+
+    const retry = button();
+    retry?.click();
+    harness.detectChanges();
+    expect(button()).toBe(retry);
+    expect(button()?.getAttribute('aria-disabled')).toBe('true');
+    retry?.click();
+    historyRequest().flush(historyBody([sampleTrack]));
+    harness.detectChanges();
+    expect(button()).toBeNull();
+    expect(historyDates()).toEqual([sampleTrack.date]);
   });
 
   it('shows configured annual Spotify playlists only in history', async () => {
@@ -425,7 +547,7 @@ describe('Public pages', () => {
       expect(link.getAttribute('rel')).toBe('noopener noreferrer');
       expect(link.textContent).toContain('se abre en otra pestaña');
     }
-    expect(text()).toContain('terminó en todas las zonas horarias');
+    expect(text()).toContain('Las canciones pueden tardar en aparecer en Spotify');
 
     await harness.navigateByUrl('/');
     http.expectOne((req) => req.url.endsWith('/today')).flush({ data: sampleTrack });

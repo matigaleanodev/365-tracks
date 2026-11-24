@@ -1,51 +1,138 @@
-<div class="page-intro">
-  <p class="section-label">{{ isToday() ? 'La selección de hoy' : 'Del archivo' }}</p>
-  <a class="text-link" routerLink="/history"
-    >Explorar el historial <span aria-hidden="true">↗</span></a
-  >
-</div>
 @let result = state();
+@if (isToday()) {
+  <div class="sr-only" role="status">{{ announcement() }}</div>
+}
+@if (
+  !isToday() &&
+  (result.status === 'loading' ||
+    (result.status === 'ready' && result.data) ||
+    (fromHistory && (result.status === 'error' || result.status === 'retrying')))
+) {
+  <div class="edition-back">
+    <a
+      class="inline-flex min-h-11 items-center gap-2"
+      [routerLink]="fromHistory ?? '/history'"
+      [info]="fromHistory ? historyReturn : undefined"
+      [scroll]="fromHistory ? 'manual' : undefined"
+    >
+      <svg
+        class="size-[1.125rem] shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M19 12H5m6 6-6-6 6-6" />
+      </svg>
+      {{ fromHistory ? 'Volver al historial' : 'Ir al historial' }}
+    </a>
+  </div>
+}
+
 @if (result.status === 'prelaunch') {
-  <section class="state-panel">
-    <h1>El calendario musical todavía no empezó.</h1>
-    <p>La primera canción llega el <time datetime="2027-01-01">1 de enero de 2027</time>.</p>
-  </section>
-} @else if (result.status === 'invalid') {
-  <section class="state-panel">
-    <h1>La fecha no es válida.</h1>
-    <p>Usá una fecha del calendario en formato AAAA-MM-DD.</p>
+  <section class="edition-launch max-w-[60rem] border-y-[3px] border-accent pt-6 pb-12">
+    <time
+      class="block text-[clamp(1.05rem,2.5vw,1.4rem)] font-[650] text-accent"
+      datetime="2027-01-01"
+      >Estreno el 1 de enero de 2027</time
+    >
+    <h1 #stateHeading class="edition-title launch-title" tabindex="-1">
+      Una canción compartida cada día.
+    </h1>
+    <p class="edition-prose m-0 max-w-[40ch] text-lg/[1.5] text-muted">
+      Una selección para escuchar y una nota breve para entrar en la canción.
+    </p>
   </section>
 } @else if (result.status === 'loading') {
-  <div class="loading-layout" role="status" aria-live="polite">
-    <div class="cover-placeholder" aria-hidden="true"></div>
-    <p>Buscando la canción…</p>
-  </div>
-} @else if (result.status === 'error') {
-  <section class="state-panel" role="alert">
-    <h1>No pudimos cargar la selección.</h1>
-    <p>Volvé a intentarlo en un momento.</p>
-    <button class="button primary" (click)="retry()">Reintentar</button>
+  <section class="edition-rule edition-feature edition-loading" aria-labelledby="loading-title">
+    <div class="edition-copy">
+      <h1 id="loading-title" class="sr-only">{{ isToday() ? 'Canción del día' : 'Canción' }}</h1>
+      <p class="edition-prose m-0 text-[.9375rem]/[1.5] text-muted" role="status">
+        {{ isToday() ? 'Cargando la canción del día…' : 'Cargando la canción…' }}
+      </p>
+      <div class="mt-3 space-y-3" aria-hidden="true">
+        <div class="h-[clamp(2.5rem,7vw,5rem)] w-full max-w-[30rem] rounded-art bg-surface"></div>
+        <div class="h-[1.1rem] w-[65%] max-w-48 rounded-art bg-surface"></div>
+        @if (!fixtures) {
+          <div class="h-11 w-full max-w-44 rounded-art bg-surface"></div>
+        }
+        <div class="h-[1.1rem] w-[65%] max-w-48 rounded-art bg-surface"></div>
+      </div>
+    </div>
+    <div class="edition-art aspect-square bg-surface" aria-hidden="true"></div>
   </section>
-} @else if (result.data) {
-  <app-track-feature [track]="result.data" />
-} @else {
-  <section class="empty-feature" aria-labelledby="empty-title">
-    <div class="empty-copy">
-      <h1 id="empty-title">
-        {{
-          isToday()
-            ? 'Todavía no hay una canción publicada para hoy.'
-            : 'Todavía no hay una canción para esta fecha.'
-        }}
-      </h1>
-      @if (!isToday()) {
-        <p class="muted">
-          Fecha consultada <time [attr.datetime]="date()">{{ date() }}</time>
-        </p>
+} @else if (result.status === 'error' || result.status === 'retrying') {
+  @let pending = result.status === 'retrying';
+  <section class="edition-rule max-w-[60rem]">
+    <h1 #stateHeading class="edition-title" tabindex="-1">No pudimos cargar la canción</h1>
+    <p class="edition-prose m-0 text-[.9375rem]/[1.5] font-[650] text-error" role="alert">
+      @if (!pending) {
+        <span class="sr-only">No pudimos cargar la canción. </span>Probá de nuevo en unos segundos.
       }
-    </div>
-    <div class="empty-sleeve" aria-hidden="true">
-      <div class="vinyl"><span>365</span></div>
-    </div>
+    </p>
+    <p class="edition-prose m-0 text-[.9375rem]/[1.5] text-muted" role="status">
+      {{ pending ? 'Cargando la canción…' : '' }}
+    </p>
+    <button
+      class="edition-action mt-4"
+      type="button"
+      [attr.aria-disabled]="pending ? 'true' : null"
+      (click)="retry()"
+    >
+      {{ pending ? 'Reintentando…' : 'Reintentar' }}
+    </button>
+  </section>
+} @else if (result.status === 'ready' && result.data) {
+  <app-track-feature #edition [track]="result.data" />
+} @else {
+  <section class="edition-rule max-w-[60rem]">
+    @if (result.status === 'ready' && date(); as requestedDate) {
+      <time
+        class="block text-[.9375rem]/[1.3] font-semibold text-muted"
+        [attr.datetime]="requestedDate"
+        >{{ requestedDate + 'T00:00:00Z' | date: 'longDate' : 'UTC' }}</time
+      >
+    }
+    <h1 #stateHeading class="edition-title" tabindex="-1">
+      @if (result.status === 'invalid') {
+        La fecha no es válida
+      } @else if (isToday()) {
+        Todavía no hay canción de hoy
+      } @else {
+        No hay canción para esta fecha
+      }
+    </h1>
+    <p class="edition-prose m-0 max-w-[57ch] text-[.9375rem]/[1.5] text-muted">
+      @if (result.status === 'invalid') {
+        Usá una fecha del calendario en formato AAAA-MM-DD.
+      } @else if (isToday()) {
+        Podés escuchar las selecciones de días anteriores en el historial.
+      } @else {
+        Podés explorar las fechas publicadas en el historial.
+      }
+    </p>
+    <a
+      class="edition-link mt-4 inline-flex min-h-11 items-center gap-2 underline-offset-[.2em]"
+      [routerLink]="fromHistory ?? '/history'"
+      [info]="fromHistory ? historyReturn : undefined"
+      [scroll]="fromHistory ? 'manual' : undefined"
+    >
+      {{ fromHistory ? 'Volver al historial' : 'Ir al historial' }}
+      <svg
+        class="size-[1.125rem] shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="m9 5 7 7-7 7" />
+      </svg>
+    </a>
   </section>
 }
