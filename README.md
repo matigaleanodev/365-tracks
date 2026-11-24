@@ -1,8 +1,8 @@
-# 365 Tracks
+# Daywave
 
 [Español](README.es.md)
 
-Public music discovery frontend: one shared daily song, a short selection note, Spotify links and a chronological archive. The working name and visual styling are provisional.
+Public music discovery frontend: one shared daily song, a short selection note, Spotify links and a chronological archive. The [Daily Edition design](DESIGN.en.md) documents the brand and its assets.
 
 ## Development
 
@@ -41,7 +41,7 @@ Angular 22 standalone, strict TypeScript, SCSS, lazy Angular Router routes and H
 | `/history`      | Newest-first archive with incremental loading     |
 | `/tracks/:date` | Date-specific song or unpublished state           |
 
-`src/app/core` owns the typed API boundary and response validation; `pages` owns routed views; `shared` owns the album cover and full song presentation. `src/app/dev` and `dev-assets` contain local-only fixtures. System color preference controls light/dark themes. Date-only values are rendered in UTC to avoid a previous-day display in negative time zones. The backend determines the shared publication day.
+`src/app/core` owns the typed API boundary and response validation; `pages` owns routed views; `shared` owns the album cover and full song presentation. `src/app/dev` and `dev-assets` contain local-only fixtures. The theme selector follows the system by default and persists an explicit Light or Dark preference. Date-only values are rendered in UTC to avoid a previous-day display in negative time zones. The backend determines the shared publication day.
 
 ## API configuration and contract
 

@@ -1,0 +1,142 @@
+@layer theme, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import './editorial-fonts.css';
+
+@source './app/**/*.{html,ts}';
+@source not './app/dev/**';
+@source not './app/testing/**';
+@source not './app/**/*.spec.ts';
+
+@theme {
+  --breakpoint-edition: 46rem;
+}
+
+@theme inline {
+  --font-editorial: var(--font-display);
+  --font-editorial-body: var(--font-body);
+  --color-hover-surface: var(--hover-surface);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-pressed: var(--primary-pressed);
+  --radius-control: var(--control-radius);
+  --radius-art: var(--art-radius);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-rule: var(--rule);
+  --color-error: var(--error);
+  --color-control-border: var(--control-border);
+}
+
+/* Canonical colors shared by both editorial themes. */
+:root {
+  --paper: #f2efe8;
+  --paper-deep: #e8e2d8;
+  --paper-lilac: #e4deef;
+  --ink: #232040;
+  --ink-soft: #5a5167;
+  --ink-outline: #877994;
+  --ink-rule: #c6bdcb;
+  --violet: #413474;
+  --violet-hover: #352761;
+  --violet-pressed: #2c204e;
+  --violet-focus: #6544a7;
+  --white-paper: #fffcf8;
+  --night: #171620;
+  --night-deep: #24222f;
+  --night-lilac: #302841;
+  --night-ink-soft: #c1b8cc;
+  --night-outline: #817694;
+  --night-rule: #4f4760;
+  --lilac: #b5a6e8;
+  --lilac-hover: #c9bbf2;
+  --lilac-pressed: #a795df;
+  --lilac-focus: #d4c2ff;
+  --plum-error: #863450;
+  --pink-error: #f3b1ca;
+
+  /* Semantic roles follow the active document color scheme. */
+  --background: light-dark(var(--paper), var(--night));
+  --surface: light-dark(var(--paper-deep), var(--night-deep));
+  --foreground: light-dark(var(--ink), var(--paper));
+  --muted: light-dark(var(--ink-soft), var(--night-ink-soft));
+  --accent: light-dark(var(--violet), var(--lilac));
+  --on-accent: light-dark(var(--white-paper), var(--night));
+  --primary-hover: light-dark(var(--violet-hover), var(--lilac-hover));
+  --primary-pressed: light-dark(var(--violet-pressed), var(--lilac-pressed));
+  --hover-surface: light-dark(var(--paper-lilac), var(--night-lilac));
+  --rule: light-dark(var(--ink-rule), var(--night-rule));
+  --control-border: light-dark(var(--ink-outline), var(--night-outline));
+  --focus: light-dark(var(--violet-focus), var(--lilac-focus));
+  --error: light-dark(var(--plum-error), var(--pink-error));
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
+  --art-radius: 0.125rem;
+  --control-radius: 0.25rem;
+  --edition-width: min(76rem, 100% - clamp(2rem, 8vw, 7rem));
+}
+
+@utility edition-rule {
+  @apply border-t-[3px] border-accent pt-3;
+}
+
+@utility edition-title {
+  margin-block: 1rem 0.5rem;
+  font: 520 clamp(2.4rem, 7.6vw, 5.65rem) / 0.99 var(--font-display);
+  letter-spacing: -0.034em;
+  overflow-wrap: anywhere;
+
+  @media (width >= 46rem) {
+    font-size: clamp(3rem, 6.2vw, 5.65rem);
+  }
+}
+
+@utility edition-action {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-transparent bg-accent px-4 py-[.54rem] no-underline hover:bg-primary-hover active:bg-primary-pressed motion-safe:transition-colors motion-safe:duration-150 motion-safe:ease-out;
+
+  &[aria-disabled='true'] {
+    @apply cursor-wait border-control-border bg-surface;
+  }
+
+  @media (forced-colors: active) {
+    border-color: ButtonText;
+  }
+}
+
+@utility edition-feature {
+  @apply grid items-start gap-6;
+  grid-template-areas: 'copy' 'art' 'note';
+
+  @media (width >= 36rem) {
+    column-gap: clamp(1.5rem, 5vw, 5rem);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-areas: 'copy art' 'note art';
+    grid-template-rows: auto 1fr;
+  }
+
+  @media (width >= 69rem) {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  }
+}
+
+@utility edition-art {
+  @apply w-full max-w-[22rem] rounded-art;
+
+  @media (width >= 36rem) {
+    justify-self: end;
+  }
+
+  @media (width >= 46rem) {
+    max-width: 32rem;
+  }
+  grid-area: art;
+}
+
+@utility edition-copy {
+  @apply min-w-0;
+  grid-area: copy;
+}

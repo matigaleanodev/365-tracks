@@ -2,13 +2,32 @@
 <html lang="es-AR">
   <head>
     <meta charset="utf-8" />
-    <title>365 Tracks</title>
+    <title>Daywave</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Una canción al día, una historia para escucharla de otra manera. Descubrí 365 Tracks desde el 1 de enero de 2027."
+      content="Daywave comparte una canción cada día, con una nota breve para escucharla de otra manera."
     />
+    <meta name="application-name" content="Daywave" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:site_name" content="Daywave" />
+    <meta property="og:title" content="Daywave" />
+    <meta property="og:description" content="One day. One song. One world." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Daywave" />
+    <meta name="twitter:description" content="One day. One song. One world." />
+    <script>
+      try {
+        const theme = localStorage.getItem('365-tracks-theme');
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.style.colorScheme = theme;
+        }
+      } catch {
+        // Use the system preference when storage is unavailable.
+      }
+    </script>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   </head>
   <body>

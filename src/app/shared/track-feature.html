@@ -1,26 +1,67 @@
 @let song = track();
-<article class="track-feature" aria-labelledby="track-title">
-  <div class="sleeve">
-    <app-album-cover [src]="song.coverUrl" [album]="song.album" [priority]="true" />
-  </div>
-  <div class="track-copy">
-    <time [attr.datetime]="song.date">
-      {{ song.date + 'T00:00:00Z' | date: 'longDate' : 'UTC' }}
-    </time>
-    <h1 id="track-title">{{ song.title }}</h1>
-    <p class="artist">{{ song.artist }}</p>
-    <p class="album">{{ song.album }} · {{ song.releaseYear }}</p>
-    @if (song.description) {
-      <div class="selection">
-        <h2>Por qué esta canción</h2>
-        <p>{{ song.description }}</p>
+<article class="edition-rule edition-feature" aria-labelledby="track-title">
+  <div class="edition-copy">
+    <div class="flex flex-wrap items-baseline gap-x-3 text-[.9375rem]/[1.3] text-muted">
+      @if (folio(); as number) {
+        <span class="font-bold tabular-nums text-accent" [attr.data-folio]="number"
+          ><span class="sr-only">Edición </span>{{ number }}</span
+        >
+      }
+      <time class="font-semibold" [attr.datetime]="song.date">
+        {{ song.date + 'T00:00:00Z' | date: 'longDate' : 'UTC' }}
+      </time>
+    </div>
+    <h1
+      #heading
+      class="edition-title"
+      id="track-title"
+      [class.long-title]="song.title.length > 52"
+      tabindex="-1"
+      dir="auto"
+    >
+      {{ song.title }}
+    </h1>
+    <p class="artist" dir="auto">{{ song.artist }}</p>
+    @if (!fixtures) {
+      <div class="mt-4">
+        <a
+          class="listen edition-action"
+          [href]="song.spotifyUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Escuchar en Spotify
+          <svg
+            class="size-[1.125rem] shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M13 5h6v6m0-6-9 9M19 13v6H5V5h6" />
+          </svg>
+          <span class="sr-only"> (se abre en otra pestaña)</span>
+        </a>
       </div>
     }
-    @if (!fixtures) {
-      <a class="button primary" [href]="song.spotifyUrl" target="_blank" rel="noopener noreferrer"
-        >Escuchar en Spotify <span aria-hidden="true">↗</span
-        ><span class="sr-only"> (se abre en otra pestaña)</span></a
-      >
-    }
+    <p class="album" dir="auto">{{ song.album }}, {{ song.releaseYear }}</p>
   </div>
+  <app-album-cover
+    class="edition-art"
+    [src]="song.coverUrl"
+    [album]="song.album"
+    [priority]="true"
+    [editionLabel]="folio() ?? song.date.slice(0, 4)"
+  />
+  @if (paragraphs().length) {
+    <section class="editorial-note min-w-0 max-w-[57ch] border-t border-rule pt-4">
+      <h2>Por qué esta canción</h2>
+      @for (paragraph of paragraphs(); track $index) {
+        <p dir="auto">{{ paragraph }}</p>
+      }
+    </section>
+  }
 </article>

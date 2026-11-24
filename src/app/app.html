@@ -1,26 +1,67 @@
-<a class="skip-link" href="#content">Saltar al contenido</a>
+<a class="skip-link" [attr.href]="skipHref()" (click)="skipToContent($event, content)"
+  >Saltar al contenido</a
+>
 <header class="site-header">
-  <a class="wordmark" routerLink="/" aria-label="365 Tracks, inicio"
-    ><span class="record-mark" aria-hidden="true"></span>365 <span>Tracks</span></a
-  >
+  <a class="wordmark" routerLink="/" aria-label="Daywave, inicio">
+    <svg class="brand-record" viewBox="0 0 24 24" aria-hidden="true">
+      <use href="daywave-mark.svg#record" />
+    </svg>
+    Daywave
+  </a>
   <nav aria-label="Navegación principal">
+    @let historyOrigin = historyReturn.detailOriginUrl();
     <a
       routerLink="/"
       routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: true }"
+      [routerLinkActiveOptions]="navMatch"
       ariaCurrentWhenActive="page"
       >Hoy</a
     >
-    <a routerLink="/history" routerLinkActive="active" ariaCurrentWhenActive="page">Historial</a>
+    <a
+      [routerLink]="historyOrigin ?? '/history'"
+      [info]="historyOrigin ? historyReturn : undefined"
+      [scroll]="historyOrigin ? 'manual' : undefined"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="navMatch"
+      #historyActive="routerLinkActive"
+      [attr.aria-current]="historyActive.isActive ? 'page' : historyOrigin ? 'location' : null"
+      >Historial</a
+    >
   </nav>
+  <label
+    class="theme-control relative size-11 shrink-0 place-items-center text-accent"
+    title="Tema visual"
+  >
+    <svg
+      class="size-[1.125rem]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none" />
+    </svg>
+    <select
+      #themeSelect
+      class="absolute inset-0 size-full opacity-0"
+      aria-label="Tema visual"
+      [value]="theme()"
+      (change)="changeTheme(themeSelect.value)"
+    >
+      <option value="system">Sistema</option>
+      <option value="light">Claro</option>
+      <option value="dark">Oscuro</option>
+    </select>
+  </label>
 </header>
 @if (fixtures) {
   <aside class="fixture-banner" role="note">
     Demostración local. Canciones y portadas ficticias; no son selecciones publicadas.
   </aside>
 }
-<main id="content" tabindex="-1"><router-outlet /></main>
+<main #content id="content" tabindex="-1"><router-outlet /></main>
 <footer class="site-footer">
-  <p>Una canción al día. Un motivo para escuchar.</p>
-  <p>Desde el 1 de enero de 2027</p>
+  <p>Daywave · Una canción compartida cada día.</p>
 </footer>
