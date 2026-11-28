@@ -45,9 +45,10 @@ Only the deployment workflow uses credentials, as secrets of the GitHub `product
 [`deploy.yml`](.github/workflows/deploy.yml) runs when changes land on `main` and, as a fallback, manually from `main`, without inputs:
 
 1. Installs, validates (lint, format, tests), builds with `deploy/production.json` and verifies the output (`npm run verify:dist`: no fixtures, source maps or secrets, with the expected metadata and configuration).
-2. Publishes with `wrangler deploy`, using the commit as the version message.
-3. Verifies the published site with `scripts/verify-site.mjs` (deep routes, file 404s, MIME types, caching, metadata without JavaScript and API CORS for the domain), retrying for about 5 minutes while the first certificate is issued. If verification fails after the site is published, fix the cause and rerun the workflow: deployment is idempotent and `release` runs once verification passes.
-4. The `release` job creates the `v<package.json version>` tag and GitHub release with generated notes when they do not exist yet. Version `0.0.0` is not published.
+2. Checks that the production API accepts the site origin through CORS (`scripts/verify-api-cors.mjs`) and stops before publishing otherwise.
+3. Publishes with `wrangler deploy`, using the commit as the version message.
+4. Verifies the published site with `scripts/verify-site.mjs` (deep routes, file 404s, MIME types, caching, metadata without JavaScript and API CORS for the domain), retrying for about 5 minutes while the first certificate is issued. If verification fails after the site is published, fix the cause and rerun the workflow: deployment is idempotent and `release` runs once verification passes.
+5. The `release` job creates the `v<package.json version>` tag and GitHub release with generated notes when they do not exist yet. Version `0.0.0` is not published.
 
 [`ci.yml`](.github/workflows/ci.yml) validates every pull request to `dev` and `main` without credentials, and checks that a `release/x.x.x` sets that `package.json` version: lint, format, tests, production build, output verification, `wrangler deploy --dry-run` and the local preview with `verify-site`. [`branch-policy.yml`](.github/workflows/branch-policy.yml) enforces the branch flow.
 
