@@ -27,7 +27,7 @@ jobs:
     environment:
       name: production
       url: ${{ env.SITE_URL }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -54,15 +54,17 @@ jobs:
           [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]] ||
             { echo 'Faltan los secretos del entorno production (ver DEPLOYMENT.md).'; exit 1; }
           npx wrangler deploy --message "${GITHUB_SHA::12}"
-      - name: Verificar el sitio publicado
+      - name: Esperar el DNS y el certificado del dominio
         run: |
-          # El primer despliegue crea el registro DNS y el certificado del dominio: se espera hasta 5 min.
-          for attempt in $(seq 20); do
-            node scripts/verify-site.mjs "$SITE_URL" && exit 0
-            echo "Intento $attempt sin éxito; se reintenta en 15 s."
-            sleep 15
-          done
-          exit 1
+          set -euo pipefail
+          # El primer despliegue crea el registro y el certificado del dominio propio. La espera
+          # consulta los servidores autoritativos y no el resolvedor del runner; se vacía su caché
+          # por si algo ya cacheó un NXDOMAIN (dura unos 30 min, el mínimo del SOA de la zona).
+          node scripts/wait-site.mjs dns "$SITE_URL" 300
+          sudo resolvectl flush-caches
+          node scripts/wait-site.mjs https "$SITE_URL" 300
+      - name: Verificar el sitio publicado
+        run: node scripts/verify-site.mjs "$SITE_URL"
 
   release:
     needs: deploy
