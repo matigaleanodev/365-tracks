@@ -21,7 +21,7 @@ import { ChangeDetectionStrategy, Component, computed, input, linkedSignal } fro
       <span class="thumbnail-placeholder"><span></span></span>
     } @else if (editionLabel(); as label) {
       <div class="edition-sleeve" role="img" aria-label="Portada no disponible">
-        <span>Daywave</span>
+        <span>daywave</span>
         <strong class="cover-number">{{ label }}</strong>
         <strong class="cover-album" dir="auto">{{ album() }}</strong>
         <span>Portada no disponible</span>

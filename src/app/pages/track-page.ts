@@ -76,7 +76,7 @@ export class TrackPage {
         if (date !== null && !isPublicationDate(date)) return of({ status: 'invalid' } as const);
         const request =
           date === null
-            ? this.todayState()
+            ? this.todayState(retrying)
             : loadState(this.api.byDate(date)).pipe(
                 filter((result) => result.status !== 'loading'),
               );
@@ -149,7 +149,17 @@ export class TrackPage {
     this.retries.update((value) => value + 1);
   }
 
-  private todayState() {
+  private isPrelaunch(day: string): boolean {
+    // Fixture mode ignores the device date; `?fixture=prelaunch` previews the prelaunch view.
+    if (environment.fixtures) {
+      return new URLSearchParams(this.document.location.search).get('fixture') === 'prelaunch';
+    }
+    // Exception to the API-owned date: the device clock only decides when prelaunch ends.
+    return day < calendarStart;
+  }
+
+  private todayState(afterError: boolean) {
+    let announceUnavailable = afterError;
     let confirmedDay: string | undefined;
     let previousTrackDate: string | undefined;
     let previouslyUnavailable = false;
@@ -158,6 +168,12 @@ export class TrackPage {
     return this.timeZone.dayChanges().pipe(
       switchMap((day) => {
         if (confirmedDay === day) return EMPTY;
+        // Before launch there is nothing to publish: wait for the visitor's local launch day.
+        if (this.isPrelaunch(day)) {
+          confirmedDay = undefined;
+          wasPrelaunch = true;
+          return of({ status: 'prelaunch' } as const);
+        }
 
         const recheckTimes = this.timeZone.midnightRecheckTimes();
         let lastScheduled = 0;
@@ -167,7 +183,7 @@ export class TrackPage {
         return refresh.pipe(
           expand((result) => {
             if (result.status !== 'ready') return EMPTY;
-            if (result.data ? result.data.date >= day : day < calendarStart) return EMPTY;
+            if (result.data && result.data.date >= day) return EMPTY;
 
             const now = Date.now();
             const pending = recheckTimes.filter((time) => time > lastScheduled);
@@ -182,6 +198,7 @@ export class TrackPage {
               confirmedDay = result.data?.date;
               if (result.data) {
                 if (
+                  wasPrelaunch ||
                   previouslyUnavailable ||
                   (previousTrackDate && previousTrackDate !== result.data.date)
                 ) {
@@ -199,21 +216,18 @@ export class TrackPage {
                 previouslyUnavailable = false;
               } else {
                 if (
-                  day >= calendarStart &&
-                  (wasPrelaunch || (previousTrackDate && !previouslyUnavailable))
+                  announceUnavailable ||
+                  wasPrelaunch ||
+                  (previousTrackDate && !previouslyUnavailable)
                 ) {
                   this.publicationAnnouncement.set('Todavía no hay canción de hoy');
                 }
                 previouslyUnavailable = true;
               }
-              wasPrelaunch = result.data === null && day < calendarStart;
+              wasPrelaunch = false;
+              announceUnavailable = false;
             }
           }),
-          map((result) =>
-            result.status === 'ready' && result.data === null && day < calendarStart
-              ? ({ status: 'prelaunch' } as const)
-              : result,
-          ),
         );
       }),
     );

@@ -4,7 +4,7 @@ Frontend público Angular standalone, TypeScript strict y SCSS. Leer también el
 
 - Estado local con signals privados, exposición readonly y derivados con computed. RxJS para HTTP y cancelación de solicitudes.
 - Usar inject(), OnPush, control flow moderno e inputs/outputs readonly. Miembros exclusivos de lógica privados, miembros de templates protected.
-- La selección y la fecha del día las determina 365-tracks-api. No seleccionar canciones según la fecha o zona horaria del navegador.
+- La selección y la fecha del día las determina 365-tracks-api. No seleccionar canciones según la fecha o zona horaria del navegador. Única excepción: el día local del navegador decide el fin del prelanzamiento (antes del 2027-01-01 local no se consulta `/tracks/today`); desde el estreno, la API define la edición y `TRACK_NOT_FOUND` es un estado de espera.
 - Mantener fixtures en src/app/dev y dev-assets; solo la configuración fixtures puede incluirlos.
 - No agregar autenticación, reproducción, administración ni integraciones directas con Spotify, OpenAI o redes sociales.
 - Validar con npm run lint, npm run format:check, npm test y npm run build.
