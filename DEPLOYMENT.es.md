@@ -45,9 +45,10 @@ Solo el workflow de despliegue usa credenciales, como secretos del entorno `prod
 [`deploy.yml`](.github/workflows/deploy.yml) corre al integrar en `main` y, como alternativa, a mano desde `main`, sin inputs:
 
 1. Instala, valida (lint, formato, tests), compila con `deploy/production.json` y verifica la distribución (`npm run verify:dist`: sin fixtures, source maps ni secretos, con los metadatos y la configuración esperados).
-2. Publica con `wrangler deploy`, usando el commit como mensaje de la versión.
-3. Verifica el sitio publicado con `scripts/verify-site.mjs` (rutas profundas, 404 de archivos, tipos MIME, caché, metadatos sin JavaScript y CORS de la API para el dominio), con reintentos durante unos 5 minutos para la creación inicial del certificado. Si la verificación falla con el sitio ya publicado, corregir la causa y volver a ejecutar el workflow: el despliegue es idempotente y `release` corre cuando la verificación pasa.
-4. El job `release` crea el tag y la release de GitHub `v<versión de package.json>` con notas generadas, si todavía no existen. La versión `0.0.0` no se publica.
+2. Comprueba que la API de producción acepta el origen del sitio por CORS (`scripts/verify-api-cors.mjs`) y se detiene antes de publicar si no lo acepta.
+3. Publica con `wrangler deploy`, usando el commit como mensaje de la versión.
+4. Verifica el sitio publicado con `scripts/verify-site.mjs` (rutas profundas, 404 de archivos, tipos MIME, caché, metadatos sin JavaScript y CORS de la API para el dominio), con reintentos durante unos 5 minutos para la creación inicial del certificado. Si la verificación falla con el sitio ya publicado, corregir la causa y volver a ejecutar el workflow: el despliegue es idempotente y `release` corre cuando la verificación pasa.
+5. El job `release` crea el tag y la release de GitHub `v<versión de package.json>` con notas generadas, si todavía no existen. La versión `0.0.0` no se publica.
 
 [`ci.yml`](.github/workflows/ci.yml) valida cada pull request hacia `dev` y `main` sin credenciales, y en un `release/x.x.x` que `package.json` tenga esa versión: lint, formato, tests, build productivo, verificación de la distribución, `wrangler deploy --dry-run` y la preview local con `verify-site`. [`branch-policy.yml`](.github/workflows/branch-policy.yml) controla el flujo de ramas.
 
