@@ -80,14 +80,21 @@ function request() {
 async function attempt() {
   if (mode === 'dns') {
     try {
-      if (!resolver) {
+      if (!resolvers) {
         const { zone, addresses } = await authoritative();
-        resolver = new dns.Resolver({ timeout: 5000, tries: 1 });
-        resolver.setServers(addresses);
+        // Un resolvedor por servidor: ante un NXDOMAIN, Node no prueba el siguiente de la lista.
+        resolvers = addresses.map((address) => {
+          const resolver = new dns.Resolver({ timeout: 5000, tries: 1 });
+          resolver.setServers([address]);
+          return resolver;
+        });
         console.log(`Consultando ${host} en los servidores autoritativos de ${zone}.`);
       }
-      const records = await resolver.resolve4(host);
-      return { done: true, detail: records.join(', ') };
+      // Alcanza con que un servidor tenga el registro; si ninguno, se clasifica el primer error.
+      const results = await Promise.allSettled(resolvers.map((r) => r.resolve4(host)));
+      const answered = results.find((result) => result.status === 'fulfilled');
+      if (!answered) throw results[0].reason;
+      return { done: true, detail: answered.value.join(', ') };
     } catch (error) {
       if (!transientDns.has(error.code)) throw error;
       return { done: false, detail: error.code };
@@ -103,7 +110,7 @@ async function attempt() {
   }
 }
 
-let resolver;
+let resolvers;
 
 for (let tries = 1; ; tries++) {
   const { done, detail } = await attempt();
