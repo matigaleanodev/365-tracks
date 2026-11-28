@@ -1,7 +1,7 @@
 # Daywave
 
 [![CI](https://img.shields.io/github/actions/workflow/status/matigaleanodev/365-tracks/ci.yml?style=flat-square&label=CI)](https://github.com/matigaleanodev/365-tracks/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.0.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
 ![Angular](https://img.shields.io/badge/Angular-22-DD0031?style=flat-square&logo=angular&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
