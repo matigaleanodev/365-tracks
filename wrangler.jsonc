@@ -7,8 +7,7 @@
   "assets": {
     "directory": "./dist/365-tracks/browser",
     "binding": "ASSETS",
-    // Las rutas de Angular (/history, /tracks/:date) se recargan desde index.html.
-    "not_found_handling": "single-page-application",
+    // Sin not_found_handling: todo lo que no es un asset llega al Worker, navegaciones incluidas.
     "html_handling": "auto-trailing-slash",
   },
   // Único origen público: sin workers.dev ni URLs de preview que dupliquen el sitio.

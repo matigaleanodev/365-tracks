@@ -1,7 +1,7 @@
-// Solo recibe lo que no resuelven los assets. Las navegaciones de navegador a rutas de Angular se
-// sirven con index.html sin invocar este Worker. Acá llegan:
-// - rutas sin extensión pedidas sin `Sec-Fetch-Mode: navigate` (lectores de enlaces, buscadores,
-//   curl): reciben el mismo index.html, con los metadatos para compartir;
+// Solo recibe lo que no resuelven los assets (la página de inicio y los archivos existentes no lo
+// invocan):
+// - rutas sin extensión, como /history o /tracks/AAAA-MM-DD, de navegadores, lectores de enlaces o
+//   buscadores: reciben index.html, con los metadatos para compartir;
 // - archivos inexistentes, como un chunk de una versión anterior: 404 en lugar de index.html, que
 //   heredaría la caché de larga duración de los assets con hash.
 export default {
