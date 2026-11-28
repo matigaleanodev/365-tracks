@@ -45,6 +45,9 @@ describe('Public pages', () => {
   });
 
   beforeEach(async () => {
+    // Default to a day after launch; prelaunch tests set their own clock.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2027-01-01T17:00:00Z'));
     vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
       ...new Intl.DateTimeFormat('en', { timeZone: timezone }).resolvedOptions(),
       timeZone: timezone,
@@ -63,65 +66,225 @@ describe('Public pages', () => {
     http.verify();
   });
 
-  it('uses the API unpublished state before launch even when the UTC date is January 1', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
+  it('does not request today before the local launch day even when the UTC date is January 1', async () => {
     vi.setSystemTime(new Date('2027-01-01T04:59:00Z'));
     await harness.navigateByUrl('/');
-    expect(text()).toContain('Cargando la canción del día');
-    const unpublished = () =>
-      http
-        .expectOne((req) => req.url.endsWith('/today') && req.params.get('timezone') === timezone)
-        .flush(apiError('TRACK_NOT_FOUND'), {
-          status: 404,
-          statusText: 'Not Found',
-        });
-    unpublished();
+    http.expectNone((req) => req.url.endsWith('/today'));
     harness.detectChanges();
     expect(text()).toContain('Una canción compartida cada día.');
+    expect(text()).not.toContain('Cargando la canción del día');
     expect(harness.routeNativeElement?.querySelector('time')?.dateTime).toBe('2027-01-01');
     expect(harness.routeNativeElement?.querySelector('a[href="/history"]')).toBeNull();
     expect(harness.routeNativeElement?.querySelector('[data-folio]')).toBeNull();
 
     vi.setSystemTime(new Date('2027-01-01T05:00:00Z'));
     document.defaultView?.dispatchEvent(new Event('pageshow'));
-    unpublished();
+    todayRequest().flush(apiError('TRACK_NOT_FOUND'), { status: 404, statusText: 'Not Found' });
     harness.detectChanges();
     expect(text()).toContain('Todavía no hay canción de hoy');
     expect(text()).not.toContain('Una canción compartida cada día.');
   });
 
+  it.each([
+    ['Pacific/Kiritimati', '2026-12-31T10:00:00Z'],
+    ['Asia/Tokyo', '2026-12-31T15:00:00Z'],
+    ['UTC', '2027-01-01T00:00:00Z'],
+    ['America/Buenos_Aires', '2027-01-01T03:00:00Z'],
+    ['Etc/GMT+12', '2027-01-01T12:00:00Z'],
+  ])('starts requesting today at the local launch midnight in %s', async (zone, launch) => {
+    vi.mocked(Intl.DateTimeFormat.prototype.resolvedOptions).mockReturnValue({
+      ...new Intl.DateTimeFormat('en', { timeZone: zone }).resolvedOptions(),
+      timeZone: zone,
+    });
+    useClock(Date.parse(launch) - 6 * 60 * 60 * 1000);
+    await harness.navigateByUrl('/');
+    http.expectNone(() => true);
+    harness.detectChanges();
+    expect(text()).toContain('Una canción compartida cada día.');
+
+    vi.advanceTimersByTime(6 * 60 * 60 * 1000 - 1);
+    http.expectNone(() => true);
+    vi.advanceTimersByTime(1);
+    http
+      .expectOne((req) => req.url.endsWith('/today') && req.params.get('timezone') === zone)
+      .flush({ data: sampleTrack });
+    harness.detectChanges();
+    expect(text()).toContain(sampleTrack.title);
+    expect(text()).not.toContain('Una canción compartida cada día.');
+    expect(harness.routeNativeElement?.querySelector('[role="status"]')?.textContent).toContain(
+      'Nueva edición',
+    );
+  });
+
+  it('requests today when a tab hidden across the launch midnight becomes visible', async () => {
+    vi.setSystemTime(new Date('2027-01-01T04:30:00Z'));
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    await harness.navigateByUrl('/');
+    hidden.mockReturnValue(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    vi.setSystemTime(new Date('2027-01-01T05:30:00Z'));
+    http.expectNone(() => true);
+
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    todayRequest().flush({ data: sampleTrack });
+    harness.detectChanges();
+    expect(text()).toContain(sampleTrack.title);
+    expect(harness.routeNativeElement?.querySelector('[role="status"]')?.textContent).toContain(
+      'Nueva edición',
+    );
+  });
+
+  it('keeps real failures on launch day apart from an unpublished selection', async () => {
+    useClock(Date.parse('2027-01-01T04:59:00Z'));
+    await harness.navigateByUrl('/');
+    http.expectNone(() => true);
+
+    vi.advanceTimersByTime(60_000);
+    todayRequest().flush(apiError('INTERNAL_ERROR'), { status: 500, statusText: 'Error' });
+    harness.detectChanges();
+    expect(text()).toContain('No pudimos cargar la canción');
+    expect(text()).not.toContain('Una canción compartida cada día.');
+
+    button()?.click();
+    TestBed.tick();
+    todayRequest().error(new ProgressEvent('error'), { status: 0, statusText: '' });
+    harness.detectChanges();
+    expect(text()).toContain('No pudimos cargar la canción');
+
+    button()?.click();
+    TestBed.tick();
+    todayRequest().flush({ message: 'Not Found' }, { status: 404, statusText: 'Not Found' });
+    harness.detectChanges();
+    expect(text()).toContain('No pudimos cargar la canción');
+
+    button()?.click();
+    TestBed.tick();
+    todayRequest().flush(apiError('TRACK_NOT_FOUND'), { status: 404, statusText: 'Not Found' });
+    harness.detectChanges();
+    expect(text()).toContain('Todavía no hay canción de hoy');
+    expect(harness.routeNativeElement?.querySelector('button')).toBeNull();
+    expect(harness.routeNativeElement?.querySelector('[role="status"]')?.textContent).toContain(
+      'Todavía no hay canción de hoy',
+    );
+  });
+
+  it('announces the waiting state after a retry once launch has passed', async () => {
+    vi.setSystemTime(new Date('2027-01-05T15:00:00Z'));
+    await harness.navigateByUrl('/');
+    todayRequest().flush(apiError('INTERNAL_ERROR'), { status: 500, statusText: 'Error' });
+    harness.detectChanges();
+    expect(text()).toContain('No pudimos cargar la canción');
+
+    button()?.click();
+    TestBed.tick();
+    todayRequest().flush(apiError('TRACK_NOT_FOUND'), { status: 404, statusText: 'Not Found' });
+    harness.detectChanges();
+    expect(text()).toContain('Todavía no hay canción de hoy');
+    expect(harness.routeNativeElement?.querySelector('[role="status"]')?.textContent).toContain(
+      'Todavía no hay canción de hoy',
+    );
+  });
+
+  describe('prelaunch in fixture mode', () => {
+    const useSearch = (search: string) => window.history.replaceState(null, '', '/' + search);
+    afterEach(() => useSearch(''));
+
+    it('previews prelaunch with ?fixture=prelaunch regardless of the device date', async () => {
+      Object.assign(environment, { fixtures: true });
+      vi.setSystemTime(new Date('2027-03-01T15:00:00Z'));
+      useSearch('?fixture=prelaunch');
+      await harness.navigateByUrl('/');
+      http.expectNone(() => true);
+      harness.detectChanges();
+      expect(text()).toContain('Una canción compartida cada día.');
+    });
+
+    it('shows fixture songs without the parameter before the launch date', async () => {
+      Object.assign(environment, { fixtures: true });
+      vi.setSystemTime(new Date('2026-11-28T15:00:00Z'));
+      await harness.navigateByUrl('/');
+      todayRequest().flush({ data: sampleTrack });
+      harness.detectChanges();
+      expect(text()).toContain(sampleTrack.title);
+    });
+
+    it('ignores ?fixture=prelaunch outside fixture mode', async () => {
+      vi.setSystemTime(new Date('2027-03-01T15:00:00Z'));
+      useSearch('?fixture=prelaunch');
+      await harness.navigateByUrl('/');
+      todayRequest().flush({ data: sampleTrack });
+      harness.detectChanges();
+      expect(text()).toContain(sampleTrack.title);
+      expect(text()).not.toContain('Una canción compartida cada día.');
+    });
+  });
+
+  it('waits on TRACK_NOT_FOUND after launch until the first selection is published', async () => {
+    const launch = Date.parse('2027-01-01T05:00:00Z');
+    const unpublished = () =>
+      todayRequest().flush(apiError('TRACK_NOT_FOUND'), { status: 404, statusText: 'Not Found' });
+    useClock(launch - 60 * 60 * 1000);
+    await harness.navigateByUrl('/');
+    http.expectNone(() => true);
+
+    vi.advanceTimersByTime(60 * 60 * 1000);
+    unpublished();
+    harness.detectChanges();
+    const element = harness.routeNativeElement!;
+    expect(text()).toContain('Todavía no hay canción de hoy');
+    expect(text()).not.toContain('No pudimos cargar la canción');
+    expect(element.querySelector('[role="alert"]')).toBeNull();
+    expect(element.querySelector('button')).toBeNull();
+    expect(element.querySelector('a[href="/history"]')).toBeTruthy();
+    expect(element.querySelector('[role="status"]')?.textContent).toContain(
+      'Todavía no hay canción de hoy',
+    );
+
+    vi.advanceTimersByTime(60_000);
+    unpublished();
+    harness.detectChanges();
+    expect(text()).toContain('Todavía no hay canción de hoy');
+
+    vi.advanceTimersByTime(60_000);
+    todayRequest().flush({ data: sampleTrack });
+    harness.detectChanges();
+    expect(text()).toContain(sampleTrack.title);
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('Nueva edición');
+  });
+
   it('refreshes only today when a hidden tab returns on a new local date', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2027-01-01T04:59:00Z'));
+    vi.setSystemTime(new Date('2027-01-02T04:59:00Z'));
     const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
     const visibilityChanged = () => document.dispatchEvent(new Event('visibilitychange'));
     const today = () => http.expectOne((req) => req.url.endsWith('/today'));
+    const secondDay = { ...sampleTrack, date: '2027-01-02' };
 
     await harness.navigateByUrl('/');
     const beforeMidnight = today();
     hidden.mockReturnValue(true);
     visibilityChanged();
-    vi.setSystemTime(new Date('2027-01-01T05:01:00Z'));
+    vi.setSystemTime(new Date('2027-01-02T05:01:00Z'));
     http.expectNone(() => true);
     hidden.mockReturnValue(false);
     visibilityChanged();
     expect(beforeMidnight.cancelled).toBe(true);
-    today().flush({ data: sampleTrack });
+    today().flush({ data: secondDay });
     harness.detectChanges();
-    expect(harness.routeNativeElement?.querySelector('time')?.dateTime).toBe(sampleTrack.date);
+    expect(harness.routeNativeElement?.querySelector('time')?.dateTime).toBe(secondDay.date);
 
     visibilityChanged();
     document.defaultView?.dispatchEvent(new Event('pageshow'));
     http.expectNone(() => true);
 
-    vi.setSystemTime(new Date('2027-01-02T06:00:00Z'));
+    vi.setSystemTime(new Date('2027-01-03T06:00:00Z'));
     document.defaultView?.dispatchEvent(new Event('pageshow'));
-    today().flush({ data: { ...sampleTrack, date: '2027-01-02' } });
+    today().flush({ data: { ...sampleTrack, date: '2027-01-03' } });
 
     await harness.navigateByUrl('/tracks/2027-01-01');
     http.expectOne((req) => req.url.endsWith('/2027-01-01')).flush({ data: sampleTrack });
     harness.detectChanges();
-    vi.setSystemTime(new Date('2027-01-03T06:00:00Z'));
+    vi.setSystemTime(new Date('2027-01-04T06:00:00Z'));
     visibilityChanged();
     document.defaultView?.dispatchEvent(new Event('pageshow'));
     http.expectNone(() => true);
@@ -214,10 +377,12 @@ describe('Public pages', () => {
     http.expectNone(() => true);
   });
 
-  it('skips midnight rechecks before launch', async () => {
+  it('makes no daily requests before launch, including around local midnight', async () => {
     useClock(Date.parse('2026-12-31T05:00:00Z'));
     await harness.navigateByUrl('/');
-    todayRequest().flush(apiError('TRACK_NOT_FOUND'), { status: 404, statusText: 'Not Found' });
+    http.expectNone(() => true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    document.defaultView?.dispatchEvent(new Event('pageshow'));
     vi.advanceTimersByTime(180_000);
     http.expectNone(() => true);
     harness.detectChanges();
