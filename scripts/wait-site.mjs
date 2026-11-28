@@ -111,10 +111,19 @@ async function attempt() {
 }
 
 let resolvers;
+let last = 'sin intentos completos';
+
+// El plazo también corta un intento en curso: las fases de DNS y conexión no tienen límite propio.
+// Salir del proceso cancela las consultas y peticiones pendientes.
+setTimeout(() => {
+  console.error(`${mode.toUpperCase()} no quedó listo para ${host} en ${seconds} s: ${last}.`);
+  process.exit(1);
+}, deadline - Date.now());
 
 for (let tries = 1; ; tries++) {
   const { done, detail } = await attempt();
-  if (done) {
+  last = detail;
+  if (done && Date.now() <= deadline) {
     console.log(`${mode.toUpperCase()} listo para ${host} (${detail}) en el intento ${tries}.`);
     process.exit(0);
   }
