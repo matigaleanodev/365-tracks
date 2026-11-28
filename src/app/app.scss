@@ -1,0 +1,131 @@
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.site-header,
+.site-footer,
+main {
+  width: var(--edition-width);
+  margin-inline: auto;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  min-height: 4rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  min-height: 2.75rem;
+  font-size: clamp(1.35rem, 3.2vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand-record {
+  width: 0.9em;
+  height: 0.9em;
+  flex: none;
+  color: var(--accent);
+}
+
+nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
+nav a {
+  display: grid;
+  place-items: center;
+  min-width: 2.75rem;
+  min-height: 44px;
+  padding-inline: 0.23rem;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+nav a:is(:hover, [aria-current]) {
+  text-decoration: underline var(--accent) 2px;
+  text-underline-offset: 0.38em;
+}
+
+.theme-control {
+  display: grid;
+}
+
+.theme-control select {
+  cursor: pointer;
+}
+
+.theme-control:hover {
+  background: var(--hover-surface);
+}
+
+.theme-control:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+main {
+  margin-block-start: clamp(1.25rem, 4vw, 3.5rem);
+}
+
+.site-footer {
+  margin-block-start: clamp(2.5rem, 7vw, 5rem);
+  padding-block: 0.75rem 1.5rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.875rem;
+  visibility: hidden;
+}
+
+.site-footer p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+:host:has(main h1):not(:has(.edition-loading)) .site-footer {
+  visibility: visible;
+}
+
+.fixture-banner {
+  background: var(--hover-surface);
+  color: var(--foreground);
+  padding: 0.8rem 1.25rem;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+:host:has(.edition-launch) {
+  nav,
+  .site-footer {
+    display: none;
+  }
+}
+
+@media (width >= 46rem) {
+  .site-header {
+    min-height: 4.5rem;
+    column-gap: 1rem;
+  }
+  nav {
+    gap: 1.25rem;
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-control {
+    border: 1px solid ButtonText;
+  }
+}

@@ -1,0 +1,218 @@
+@let result = state();
+@let initialLoading = result.status === 'loading' && result.nextCursor === null;
+@let initialError = result.status === 'error' && result.nextCursor === null;
+@let retrying = initialLoading && retryingInitial();
+@let empty = result.status === 'ready' && !result.tracks.length && result.nextCursor === null;
+@let showPagination =
+  !!result.tracks.length || result.nextCursor !== null || result.addedCount !== null;
+
+<div
+  class="max-w-[60rem]"
+  [class.edition-rule]="initialError || retrying || empty"
+  [class.edition-loading]="initialLoading"
+>
+  <header class="flex flex-wrap items-end justify-between gap-x-4">
+    <h1
+      #heading
+      class="edition-title"
+      [class.mt-0]="!initialError && !retrying && !empty"
+      tabindex="-1"
+    >
+      {{ initialError || retrying ? 'No pudimos cargar el historial' : 'Historial' }}
+    </h1>
+    @if (playlists.length) {
+      <a
+        class="edition-link inline-flex min-h-11 items-center underline underline-offset-[.2em]"
+        [attr.href]="playlistHref()"
+        (click)="jumpToPlaylists($event)"
+        >Playlists anuales</a
+      >
+    }
+  </header>
+
+  @if (initialError || retrying) {
+    <div>
+      @if (initialError) {
+        <p class="edition-prose m-0 font-[650] text-error" role="alert">
+          <span class="sr-only">No pudimos cargar el historial. </span>Probá de nuevo en unos
+          segundos.
+        </p>
+      } @else {
+        <p class="edition-prose m-0 text-muted" role="status">Cargando el historial…</p>
+      }
+      <button
+        #retryButton
+        class="edition-action mt-4"
+        type="button"
+        [attr.aria-disabled]="initialLoading ? 'true' : null"
+        (click)="loadMore()"
+      >
+        {{ initialLoading ? 'Reintentando…' : 'Reintentar' }}
+      </button>
+    </div>
+  } @else if (initialLoading) {
+    <p class="edition-prose m-0 text-[.9375rem] text-muted" role="status">Cargando el historial…</p>
+    <div class="mt-8" aria-hidden="true">
+      @for (row of [0, 1, 2, 3, 4]; track row) {
+        <div class="grid min-h-[3.6rem] items-center border-t border-rule px-4">
+          <span class="h-[1.1rem] w-full max-w-96 rounded-art bg-surface"></span>
+        </div>
+      }
+    </div>
+  } @else if (empty) {
+    <p class="edition-prose m-0 text-[.9375rem] text-muted">Todavía no hay canciones publicadas.</p>
+    <a
+      class="edition-link mt-4 inline-flex min-h-11 items-center gap-2 underline underline-offset-[.2em]"
+      routerLink="/"
+    >
+      Ir a Hoy
+      <ng-container [ngTemplateOutlet]="chevron" />
+    </a>
+  }
+
+  @for (month of months(); track month.key) {
+    <section class="mt-8" [attr.aria-labelledby]="'month-' + month.key">
+      <h2
+        class="m-0 flex items-baseline justify-between gap-2 border-t-2 border-accent pt-3 pb-2 font-editorial text-[clamp(1.6rem,3.6vw,2.4rem)]/none font-[520]"
+        [id]="'month-' + month.key"
+      >
+        {{ month.label }}
+        <span
+          class="font-editorial-body text-[.9375rem]/[1.35] font-semibold text-muted tabular-nums"
+        >
+          {{ month.year }}
+        </span>
+      </h2>
+      <ul class="m-0 list-none p-0" role="list">
+        @for (track of month.tracks; track track.date) {
+          <li class="border-t border-rule last:border-b">
+            <a
+              class="group grid min-h-14 grid-cols-[1.75rem_2.5rem_minmax(0,1fr)_1.125rem] items-center gap-2 px-1 py-2 no-underline hover:bg-hover-surface active:bg-hover-surface motion-safe:transition-colors motion-safe:duration-150 motion-safe:ease-out edition:grid-cols-[2.5rem_2.75rem_minmax(0,1fr)_1.125rem] edition:gap-4 edition:px-3"
+              [id]="'date-' + track.date"
+              [routerLink]="['/tracks', track.date]"
+              [info]="result"
+            >
+              <time class="font-semibold text-muted tabular-nums" [attr.datetime]="track.date">
+                <span class="sr-only">{{ dateLabel(track.date) }}</span>
+                <span aria-hidden="true">{{ track.date.slice(-2) }}</span>
+              </time>
+              <app-album-cover
+                class="size-10 rounded-art"
+                [src]="track.coverUrl"
+                [album]="track.album"
+                [thumbnail]="true"
+              />
+              <span class="min-w-0 leading-[1.15] wrap-anywhere">
+                <strong
+                  class="block text-[1.05rem] font-[650] [font-synthesis:weight] underline-offset-[.16em] group-hover:underline group-focus-visible:underline"
+                  dir="auto"
+                  >{{ track.title }}</strong
+                >
+                <small class="mt-[.15rem] block text-[.875rem]/[1.15] text-muted" dir="auto">{{
+                  track.artist
+                }}</small>
+              </span>
+              <ng-container [ngTemplateOutlet]="chevron" />
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (showPagination) {
+    <div class="mt-6 min-h-11">
+      @if (result.nextCursor !== null) {
+        <button
+          #pageButton
+          class="edition-action"
+          type="button"
+          [attr.aria-disabled]="result.status === 'loading' ? 'true' : null"
+          (click)="loadMore()"
+        >
+          {{ result.status === 'error' ? 'Reintentar' : 'Cargar más canciones' }}
+        </button>
+      }
+      @if (result.status === 'error' && result.nextCursor !== null) {
+        <p class="edition-prose mt-2 mb-0 font-[650] text-error" role="alert">
+          No se pudieron cargar más canciones.
+        </p>
+      }
+      <p
+        #pageStatus
+        class="edition-prose m-0 text-[.9375rem] text-muted"
+        [class.mt-2]="result.nextCursor !== null && paginationAnnouncement()"
+        [class.sr-only]="
+          !paginationAnnouncement() || (result.nextCursor === null && result.addedCount === null)
+        "
+        role="status"
+        tabindex="-1"
+      >
+        {{ paginationAnnouncement() }}
+      </p>
+    </div>
+  }
+
+  @if (playlists.length) {
+    <section
+      id="playlists"
+      class="history-playlists mt-12 border-t border-rule pt-4"
+      aria-labelledby="playlist-title"
+    >
+      <h2
+        #playlistHeading
+        id="playlist-title"
+        class="m-0 font-editorial text-[1.8rem]/[1.1] font-[550]"
+        tabindex="-1"
+      >
+        Playlists anuales
+      </h2>
+      <ul class="m-0 list-none p-0" role="list">
+        @for (playlist of playlists; track playlist.year) {
+          <li>
+            <a
+              class="edition-link inline-flex min-h-11 items-center gap-2 underline underline-offset-[.2em]"
+              [href]="playlist.href"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Playlist {{ playlist.year }} en Spotify
+              <svg
+                class="size-[1.125rem] shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M13 5h6v6m0-6-9 9" />
+                <path d="M19 13v6H5V5h6" />
+              </svg>
+              <span class="sr-only"> (se abre en otra pestaña)</span>
+            </a>
+          </li>
+        }
+      </ul>
+      <p class="edition-prose m-0 text-[.9375rem] text-muted">
+        Las canciones pueden tardar en aparecer en Spotify.
+      </p>
+    </section>
+  }
+</div>
+
+<ng-template #chevron>
+  <svg
+    class="size-[1.125rem] shrink-0 text-accent"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m9 5 7 7-7 7" />
+  </svg>
+</ng-template>

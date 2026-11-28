@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Daywave · Una canción compartida cada día</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Daywave comparte una canción cada día, con una nota breve para escucharla de otra manera."
+    />
+    <meta name="application-name" content="Daywave" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F2EFE8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171620" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:site_name" content="Daywave" />
+    <meta property="og:title" content="Daywave · Una canción compartida cada día" />
+    <meta property="og:description" content="One day. One song. One world." />
+    <meta property="og:image" content="https://daywave.matiasgaleano.dev/social-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Daywave. Una canción compartida cada día. One day. One song. One world."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Daywave · Una canción compartida cada día" />
+    <meta name="twitter:description" content="One day. One song. One world." />
+    <meta name="twitter:image" content="https://daywave.matiasgaleano.dev/social-card.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Daywave. Una canción compartida cada día. One day. One song. One world."
+    />
+    <script>
+      try {
+        const theme = localStorage.getItem('365-tracks-theme');
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.style.colorScheme = theme;
+        }
+      } catch {
+        // Use the system preference when storage is unavailable.
+      }
+    </script>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
+</html>

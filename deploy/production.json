@@ -1,0 +1,7 @@
+{
+  "siteUrl": "https://daywave.matiasgaleano.dev",
+  "apiBaseUrl": "https://2wb58lfgsh.execute-api.us-east-1.amazonaws.com/api",
+  "spotifyPlaylists": {
+    "2027": "https://open.spotify.com/playlist/6cqvwzClRnrnyaGdxq2McG"
+  }
+}

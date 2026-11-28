@@ -1,4 +1,4 @@
-# 365 Tracks
+# Daywave
 
 Frontend público Angular standalone, TypeScript strict y SCSS. Leer también el AGENTS.md administrativo del workspace en los directorios padre si está disponible.
 

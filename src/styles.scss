@@ -1,0 +1,79 @@
+:root {
+  color-scheme: light dark;
+  color: var(--foreground);
+  background: var(--background);
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font: 400 1rem / 1.5 var(--font-body);
+}
+a {
+  color: inherit;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+a:hover {
+  text-decoration-thickness: 2px;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+h1,
+h2,
+p {
+  overflow-wrap: break-word;
+}
+h1 {
+  text-wrap: balance;
+}
+p:not(.edition-prose) {
+  max-width: 65ch;
+  line-height: 1.7;
+}
+.skip-link:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: var(--background);
+  padding: 0.5rem 1rem;
+  z-index: 5;
+}
+::selection {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.edition-action {
+  color: var(--on-accent);
+  font-weight: 650;
+  line-height: 1.25;
+}
+.edition-action[aria-disabled='true'] {
+  color: var(--muted);
+}
+.edition-link {
+  color: var(--accent);
+}

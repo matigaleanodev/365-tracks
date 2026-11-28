@@ -1,0 +1,57 @@
+:host {
+  display: block;
+}
+h1:focus-visible {
+  position: relative;
+  outline: none;
+}
+h1:focus-visible::after {
+  content: '';
+  position: absolute;
+  // Newsreader's accents can extend above the compact title line box.
+  inset: -0.75rem -0.375rem -0.25rem;
+  outline: 2px solid var(--focus);
+  pointer-events: none;
+}
+h1.long-title {
+  font-size: clamp(2rem, 5.1vw, 3.5rem);
+  line-height: 1.04;
+  text-wrap: pretty;
+}
+.artist,
+.album,
+.editorial-note p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.artist {
+  font-size: clamp(1.12rem, 2.55vw, 1.55rem);
+  line-height: 1.16;
+  font-weight: 650;
+}
+.album {
+  color: var(--muted);
+  line-height: 1.5;
+  margin-block-start: 0.5rem;
+}
+.editorial-note {
+  grid-area: note;
+}
+.editorial-note h2 {
+  margin: 0 0 0.5rem;
+  font: 550 clamp(1.4rem, 3vw, 1.9rem) / 1.1 var(--font-display);
+  letter-spacing: -0.02em;
+}
+.editorial-note p {
+  font-size: 1.065rem;
+  line-height: 1.54;
+  white-space: pre-line;
+}
+.editorial-note p + p {
+  margin-top: 0.75rem;
+}
+@media (width >= 46rem) {
+  h1.long-title {
+    font-size: clamp(2.25rem, 3.8vw, 3.5rem);
+  }
+}
