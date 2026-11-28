@@ -45,7 +45,7 @@ Angular 22 standalone, strict TypeScript, SCSS, lazy Angular Router routes and H
 
 ## API configuration and contract
 
-Set `API_BASE_URL` to the public HTTPS URL from the backend stack output `ApiUrl`, including its stage path if present, and append `/api`. Run `npm run build` with that variable set. The build validates the URL and passes it to Angular through a temporary environment file. Development and fixtures keep their separate file replacements.
+`npm run build` reads the public production values from [`deploy/production.json`](deploy/production.json): `apiBaseUrl` is the public HTTPS URL of the backend stack output `ApiUrl`, including its stage path if present, with `/api` appended. The build validates the file and passes it to Angular through a temporary environment file. Development and fixtures keep their separate file replacements.
 
 The frontend consumes the `365-tracks-api` contract:
 
@@ -60,14 +60,12 @@ The visitor clock schedules these checks. With a slow clock, the refresh can lag
 
 ## Spotify archive
 
-Set `SPOTIFY_PLAYLISTS` at build time to a JSON object whose keys are years starting with `2027` and whose values are the corresponding public `https://open.spotify.com/playlist/` URLs with their playlist IDs. Add each playlist once it is public. History displays the links newest year first in separate tabs. Omit the variable or use `{}` to hide the section. Fixture mode always hides it.
+`spotifyPlaylists` in [`deploy/production.json`](deploy/production.json) maps years starting with `2027` to public `https://open.spotify.com/playlist/` URLs. Add each playlist once it is public. History displays the links newest year first in separate tabs and hides the section when the object is empty. Fixture mode always hides it.
 
 The playlist is updated outside Angular. A track can appear in the app's history before Spotify adds it, since the playlist waits for the publication date to end in every time zone. The daily song has its own Spotify track link. Neither the playlist nor synchronization requires a new public API endpoint.
 
-## Cloudflare Pages
+## Publishing
 
-Use `npm run build` and publish `dist/365-tracks/browser`. Set Node.js to match `.nvmrc`, provide the required `API_BASE_URL` and optionally set `SPOTIFY_PLAYLISTS` in the build environment. Both values are bundled into browser code and must contain only public URLs. For Direct Upload, set the same variables in the local shell running the build. To preview locally, serve the build output with a static server that falls back to `index.html` for app routes.
+The site is served by Cloudflare Workers with static assets at `https://daywave.matiasgaleano.dev`. `npm run preview` builds for production, verifies the output and serves it locally with Wrangler. Merging a release into `main` deploys automatically and publishes its tag and release. [Deployment guide](DEPLOYMENT.md) covers the Workers setup, public values, secrets, initial setup, rollback and the custom domain.
 
-Add the exact public frontend origin to the backend's `CORS_ALLOWED_ORIGINS` once the domain is chosen. Use `https://<frontend-domain>` with a port only if needed, and omit paths and the trailing slash. If both a custom domain and a `pages.dev` hostname are used, list their origins separately. Angular's root `index.html` and the absence of a root `404.html` enable the Pages SPA fallback for deep routes. `public/_headers` supplies response headers.
-
-Reference: [Angular compatibility](https://angular.dev/reference/versions), [Cloudflare Angular](https://developers.cloudflare.com/pages/framework-guides/deploy-an-angular-site/), [Pages SPA routing](https://developers.cloudflare.com/pages/configuration/serving-pages/#single-page-application-spa-rendering).
+Sharing metadata (title, description, Open Graph and the social card) is part of `src/index.html`, so link previews work without JavaScript. Since every route receives the same HTML, the canonical URL is declared per route on navigation and the 404 page is marked `noindex`. `public/robots.txt` and `public/sitemap.xml` list the public routes. Brand PNGs are generated from `public/daywave-mark.svg` with `bash scripts/brand-assets.sh`.
