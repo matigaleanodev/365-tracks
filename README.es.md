@@ -1,5 +1,12 @@
 # Daywave
 
+[![CI](https://img.shields.io/github/actions/workflow/status/matigaleanodev/365-tracks/ci.yml?style=flat-square&label=CI)](https://github.com/matigaleanodev/365-tracks/actions/workflows/ci.yml)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-0.0.0-blue?style=flat-square)
+![Angular](https://img.shields.io/badge/Angular-22-DD0031?style=flat-square&logo=angular&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat-square&logo=cloudflare&logoColor=white)
+
 [English](README.md)
 
 Frontend público de descubrimiento musical: una canción diaria compartida, una breve explicación, enlaces a Spotify e historial cronológico. El [diseño de Edición diaria](DESIGN.md) documenta la marca y sus recursos.
