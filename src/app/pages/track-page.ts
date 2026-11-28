@@ -170,6 +170,7 @@ export class TrackPage {
         if (confirmedDay === day) return EMPTY;
         // Before launch there is nothing to publish: wait for the visitor's local launch day.
         if (this.isPrelaunch(day)) {
+          confirmedDay = undefined;
           wasPrelaunch = true;
           return of({ status: 'prelaunch' } as const);
         }

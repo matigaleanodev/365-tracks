@@ -169,6 +169,26 @@ describe('Public pages', () => {
     );
   });
 
+  it('requests today again when the device clock returns to launch day after going back', async () => {
+    vi.setSystemTime(new Date('2027-01-01T17:00:00Z'));
+    await harness.navigateByUrl('/');
+    todayRequest().flush({ data: sampleTrack });
+    harness.detectChanges();
+    expect(text()).toContain(sampleTrack.title);
+
+    vi.setSystemTime(new Date('2026-12-31T17:00:00Z'));
+    document.defaultView?.dispatchEvent(new Event('pageshow'));
+    http.expectNone(() => true);
+    harness.detectChanges();
+    expect(text()).toContain('Una canción compartida cada día.');
+
+    vi.setSystemTime(new Date('2027-01-01T17:00:00Z'));
+    document.defaultView?.dispatchEvent(new Event('pageshow'));
+    todayRequest().flush({ data: sampleTrack });
+    harness.detectChanges();
+    expect(text()).toContain(sampleTrack.title);
+  });
+
   it('announces the waiting state after a retry once launch has passed', async () => {
     vi.setSystemTime(new Date('2027-01-05T15:00:00Z'));
     await harness.navigateByUrl('/');
