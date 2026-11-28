@@ -27,10 +27,10 @@ Daywave se publica como un Worker con assets estáticos en `https://daywave.mati
 
 Solo el workflow de despliegue usa credenciales, como secretos del entorno `production` de GitHub, limitado a `main` y sin revisores: el merge autorizado del release es la aprobación.
 
-| Secreto                 | Valor                                                                                                                                                                                                                                                     |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID` | Account ID de la cuenta de Cloudflare que contiene la zona `matiasgaleano.dev`.                                                                                                                                                                           |
-| `CLOUDFLARE_API_TOKEN`  | Token propio (Custom token) con **Account › Workers Scripts › Edit** sobre esa cuenta y **Zone › Workers Routes › Edit** solo sobre la zona `matiasgaleano.dev`. Sin otros permisos ni zonas. Conviene fijarle vencimiento y rotarlo con el mismo script. |
+| Secreto                 | Valor                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLOUDFLARE_ACCOUNT_ID` | Account ID de la cuenta de Cloudflare que contiene la zona `matiasgaleano.dev`.                                                                                                                                                                                                                                                                  |
+| `CLOUDFLARE_API_TOKEN`  | Token propio (Custom token) con **Account › Workers Scripts › Edit** sobre esa cuenta más **Zone › Workers Routes › Edit** y **Zone › Zone › Read** solo sobre la zona `matiasgaleano.dev` (la lectura permite que el dominio propio resuelva la zona). Sin otros permisos ni zonas. Conviene fijarle vencimiento y rotarlo con el mismo script. |
 
 ## Configuración inicial
 

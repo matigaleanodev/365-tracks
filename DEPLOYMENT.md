@@ -27,10 +27,10 @@ Daywave is published as a Worker with static assets at `https://daywave.matiasga
 
 Only the deployment workflow uses credentials, as secrets of the GitHub `production` environment, restricted to `main` and without reviewers: the authorized release merge is the approval.
 
-| Secret                  | Value                                                                                                                                                                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID` | Account ID of the Cloudflare account that holds the `matiasgaleano.dev` zone.                                                                                                                                                      |
-| `CLOUDFLARE_API_TOKEN`  | Custom token with **Account › Workers Scripts › Edit** on that account and **Zone › Workers Routes › Edit** on the `matiasgaleano.dev` zone only. No other permissions or zones. Set an expiry and rotate it with the same script. |
+| Secret                  | Value                                                                                                                                                                                                                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID` | Account ID of the Cloudflare account that holds the `matiasgaleano.dev` zone.                                                                                                                                                                                                                                     |
+| `CLOUDFLARE_API_TOKEN`  | Custom token with **Account › Workers Scripts › Edit** on that account plus **Zone › Workers Routes › Edit** and **Zone › Zone › Read** on the `matiasgaleano.dev` zone only (the read lets the custom domain resolve the zone). No other permissions or zones. Set an expiry and rotate it with the same script. |
 
 ## Initial setup
 
