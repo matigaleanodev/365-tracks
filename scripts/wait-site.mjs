@@ -38,18 +38,24 @@ const transientNet = new Set([
 ]);
 
 // Servidores autoritativos de la zona más cercana con registros NS (el apex ya existe).
+// ENOTFOUND/ENODATA solo indican que esa etiqueta no es una zona; los demás errores de DNS se
+// propagan con su código para que el ciclo reintente los transitorios y corte con el resto.
+const notZone = new Set(['ENOTFOUND', 'ENODATA']);
 async function authoritative() {
   const labels = host.split('.');
   for (let i = 1; i < labels.length - 1; i++) {
     const zone = labels.slice(i).join('.');
-    const names = await dns.resolveNs(zone).catch(() => []);
+    const names = await dns.resolveNs(zone).catch((error) => {
+      if (notZone.has(error.code)) return [];
+      throw error;
+    });
     if (!names.length) continue;
-    const addresses = (
-      await Promise.all(names.map((name) => dns.resolve4(name).catch(() => [])))
-    ).flat();
+    const addresses = (await Promise.all(names.map((name) => dns.resolve4(name)))).flat();
     if (addresses.length) return { zone, addresses };
   }
-  throw new Error(`no se encontraron servidores autoritativos para ${host}`);
+  throw Object.assign(new Error(`no se encontraron servidores autoritativos para ${host}`), {
+    code: 'ENOAUTH',
+  });
 }
 
 function request() {
@@ -70,6 +76,12 @@ function request() {
 async function attempt() {
   if (mode === 'dns') {
     try {
+      if (!resolver) {
+        const { zone, addresses } = await authoritative();
+        resolver = new dns.Resolver({ timeout: 5000, tries: 1 });
+        resolver.setServers(addresses);
+        console.log(`Consultando ${host} en los servidores autoritativos de ${zone}.`);
+      }
       const records = await resolver.resolve4(host);
       return { done: true, detail: records.join(', ') };
     } catch (error) {
@@ -88,12 +100,6 @@ async function attempt() {
 }
 
 let resolver;
-if (mode === 'dns') {
-  const { zone, addresses } = await authoritative();
-  resolver = new dns.Resolver({ timeout: 5000, tries: 1 });
-  resolver.setServers(addresses);
-  console.log(`Consultando ${host} en los servidores autoritativos de ${zone}.`);
-}
 
 for (let tries = 1; ; tries++) {
   const { done, detail } = await attempt();
