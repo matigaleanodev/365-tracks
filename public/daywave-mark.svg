@@ -1,10 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <g id="record" fill="none" stroke="currentColor" stroke-width="1.75">
-    <circle cx="12" cy="12" r="9.5" />
-    <path
-      d="M5.75 12A6.25 6.25 0 0 1 12 5.75m6.25 6.25A6.25 6.25 0 0 1 12 18.25"
-      stroke-linecap="round"
-    />
-    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <g id="record">
+    <circle cx="60" cy="60" r="56" style="fill: var(--brand-record, #242326)" />
+    <g fill="none" stroke-width="1" style="stroke: var(--brand-groove, #49474c)">
+      <circle cx="60" cy="60" r="49" />
+      <circle cx="60" cy="60" r="44" />
+      <circle cx="60" cy="60" r="39" />
+      <circle cx="60" cy="60" r="34" />
+      <circle cx="60" cy="60" r="29" />
+    </g>
+    <circle cx="60" cy="60" r="22" style="fill: var(--brand-label, #8b79c6)" />
+    <circle cx="60" cy="60" r="3.5" style="fill: var(--brand-record, #242326)" />
   </g>
 </svg>

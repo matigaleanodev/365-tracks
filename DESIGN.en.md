@@ -4,9 +4,25 @@
 
 Daily Edition design reference. The styling foundation shares semantic tokens between SCSS and Tailwind.
 
-Daywave is a shared daily music selection, with one listening note and a Spotify link. Violet, the edition rule, date and serif track title establish its editorial identity. The **Daywave** wordmark uses Source Sans 3 at weight 700 with −0.04 em tracking and the foreground color on one line. A monochrome vinyl record SVG takes the theme accent through `currentColor`. The tagline **One day. One song. One world.** appears on the prelaunch screen and in product introductions. The interface uses Rioplatense Spanish.
+Daywave is a shared daily music selection, with one listening note and a Spotify link. Violet, the edition rule, date and serif track title establish its editorial identity. Running text spells the name Daywave. The visual wordmark is lowercase **daywave** in Source Sans 3 at weight 600 with −0.02 em tracking and the foreground color on one line, next to the mark: a classic vinyl record. The tagline **One day. One song. One world.** appears on the prelaunch screen and in product introductions. The interface uses Rioplatense Spanish.
 
-The record in `public/daywave-mark.svg`, the header wordmark and the favicon (`public/favicon.svg`) are the final brand. Favicon, touch icon, manifest and social card PNGs derive from the same record and the light palette through `scripts/brand-assets.sh`.
+### Mark and favicon
+
+`public/daywave-mark.svg` (symbol `#record`) is the single source for the mark. Geometry on a 120 viewBox: body r 56, five 1-unit grooves at r 49, 44, 39, 34 and 29, label r 22 and a body-colored r 3.5 spindle hole. The geometry stays identical in both themes. Only the colors change, through brand tokens that leave the general palette untouched:
+
+| Token                            | Light     | Dark      |
+| -------------------------------- | --------- | --------- |
+| `--brand-record` (body and hole) | `#242326` | `#39373F` |
+| `--brand-groove` (grooves)       | `#49474C` | `#605D67` |
+| `--brand-label` (label)          | `#8B79C6` | `#B5A6E8` |
+
+The light label uses a mid violet because the `#413474` accent barely contrasts with the body. Without tokens, for example inside `<img>`, the SVG falls back to the light palette.
+
+In the header the mark sits in a 0.9 em box with a 0.2 em gap before the wordmark. Below an 18 px font size, use the mark or favicon alone. The tagline is not part of the logo: it goes in a separate composition, such as the social card or the prelaunch screen. The logo has no animation or effects.
+
+`public/favicon.svg` is the optical simplification for tabs. On a 32 viewBox it keeps the body (r 16, edge to edge), the label (r 6.5) and an r 2 hole, which still reads at 3:1 at 16 px. It shows two grooves at 32 px and none at 16 px. Under `prefers-color-scheme: dark` it switches to the dark palette and adds a pixel-aligned groove-colored rim (1 px at both 32 and 16 px), because the dark body almost disappears on dark browser tabs.
+
+`scripts/brand-assets.sh` derives the favicon PNG, touch icon, manifest icons and social card from those two SVG files with the light palette. It holds no geometry of its own: change the brand in the SVG files and rerun the script.
 
 ## Editions and surfaces
 
