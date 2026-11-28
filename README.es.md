@@ -27,7 +27,7 @@ Abrir `http://localhost:4200`. El entorno de desarrollo consume `http://localhos
 npm run start:fixtures
 ```
 
-Este modo local separado intercepta los tres endpoints de canciones. Sus canciones, fechas y portadas originales de ejemplo son ficticias y llevan un aviso de demostración. La demo oculta los enlaces ficticios a Spotify e incluye canciones con y sin portada y descripción. Abrí `/?fixture=empty` o `/history?fixture=empty` para probar los estados sin publicación e historial vacío. Usá `?fixture=error` en la ruta para simular HTTP 500. Los fixtures y sus recursos quedan fuera del build de producción.
+Este modo local separado intercepta los tres endpoints de canciones. Sus canciones, fechas y portadas originales de ejemplo son ficticias y llevan un aviso de demostración. La demo oculta los enlaces ficticios a Spotify e incluye canciones con y sin portada y descripción. Abrí `/?fixture=empty` o `/history?fixture=empty` para probar los estados sin publicación e historial vacío, y `/?fixture=prelaunch` para ver el prelanzamiento sin depender de la fecha del dispositivo (fuera de ese parámetro, el modo fixtures ignora la fecha de estreno). Usá `?fixture=error` en la ruta para simular HTTP 500. Los fixtures y sus recursos quedan fuera del build de producción.
 
 ```sh
 npm run lint
@@ -62,6 +62,8 @@ El frontend consume el contrato de `365-tracks-api`:
 - Los errores tienen el formato `{ error: { code, message, requestId? } }`. Los fallos inesperados y las respuestas exitosas malformadas permiten reintentar.
 
 El frontend envía la zona horaria IANA del navegador o `UTC` si falla la detección. La API determina qué publicaciones son visibles y devuelve la fecha que se muestra con cada canción. En el inicio, un cambio de fecha local vuelve a consultar `/tracks/today`, también al regresar a una pestaña oculta. Si la API todavía devuelve una fecha anterior o `TRACK_NOT_FOUND`, el inicio puede reintentar durante los primeros dos minutos del día local.
+
+Antes del 2027-01-01 en el calendario local del visitante, el inicio muestra el prelanzamiento sin consultar `/tracks/today`. La primera consulta ocurre a la medianoche local del día de estreno, aunque la página siga abierta, o cuando una pestaña oculta vuelve a estar visible. Un reloj del dispositivo atrasado mantiene el prelanzamiento mientras dure el atraso. Es el único caso en que el reloj del dispositivo decide qué se muestra; tras el estreno, la API determina la edición. Desde entonces, `TRACK_NOT_FOUND` es un estado de espera («Todavía no hay canción de hoy»), mientras que cualquier otra falla, incluido un 404 sin ese código, muestra el estado de reintento.
 
 El reloj del visitante programa estas consultas. Si está atrasado, la actualización puede demorarse lo que dure el desfase. Para sincronizarla con precisión, la API tendría que exponer su reloj o el instante de la próxima publicación tanto en respuestas exitosas como en `TRACK_NOT_FOUND`. JavaScript solo puede leer el encabezado HTTP `Date` de otro origen si CORS lo expone explícitamente.
 
