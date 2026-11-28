@@ -10,7 +10,7 @@ Daywave publica una selección musical compartida por día, acompañada de una n
 
 El wordmark **Daywave** usa Source Sans 3 en peso 700, tracking −0,04 em y color de primer plano en una línea. Lo acompaña un disco de vinilo SVG monocromático que toma el acento del tema mediante `currentColor`. El slogan **One day. One song. One world.** se usa en el prelanzamiento y en la presentación de la marca. El texto de interfaz usa español rioplatense y verbos concretos.
 
-El logo (`public/daywave-mark.svg` y el wordmark del encabezado) y el favicon (`public/favicon.svg`) son provisionales. Su diseño definitivo se abordará durante la preparación para el lanzamiento.
+El disco de `public/daywave-mark.svg`, el wordmark del encabezado y el favicon (`public/favicon.svg`) son la marca definitiva. Los PNG de favicon, ícono táctil, manifiesto y tarjeta social se derivan del mismo disco y la paleta clara con `scripts/brand-assets.sh`.
 
 ## Fecha y número de edición
 

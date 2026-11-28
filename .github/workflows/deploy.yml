@@ -1,0 +1,101 @@
+name: deploy
+
+# Automático al integrar en `main` (merge de `release/x.x.x`); la ejecución manual desde `main`, sin
+# inputs, repite el mismo proceso. El entorno `production` limita las credenciales de Cloudflare a
+# `main` y no tiene revisores: el merge autorizado del release es la aprobación. Después de publicar
+# y verificar el sitio, `release` crea el tag y la release de la versión de package.json si faltan.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: daywave-production
+  cancel-in-progress: false
+
+env:
+  NG_CLI_ANALYTICS: 'false'
+  WRANGLER_SEND_METRICS: 'false'
+  SITE_URL: https://daywave.matiasgaleano.dev
+
+jobs:
+  deploy:
+    if: github.repository == 'matigaleanodev/365-tracks' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: ${{ env.SITE_URL }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Validar antes de publicar
+        run: npm run lint && npm run format:check && npm test
+      - run: npm run build
+      - run: npm run verify:dist
+      - name: Publicar en Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]] ||
+            { echo 'Faltan los secretos del entorno production (ver DEPLOYMENT.md).'; exit 1; }
+          npx wrangler deploy --message "${GITHUB_SHA::12}"
+      - name: Verificar el sitio publicado
+        run: |
+          # El primer despliegue crea el registro DNS y el certificado del dominio: se espera hasta 5 min.
+          for attempt in $(seq 20); do
+            node scripts/verify-site.mjs "$SITE_URL" && exit 0
+            echo "Intento $attempt sin éxito; se reintenta en 15 s."
+            sleep 15
+          done
+          exit 1
+
+  release:
+    needs: deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Publicar el tag y la release de la versión desplegada
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(jq -r .version package.json)
+          if [[ "$version" == 0.0.0 ]]; then
+            echo "La versión $version no se publica como release." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          tag="v$version"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "La release $tag ya existe: no se modifica." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Un tag existente se reutiliza solo si apunta al commit desplegado. matching-refs devuelve
+          # una lista (vacía si no existe), así que cualquier error de la API detiene el job.
+          ref="refs/tags/$tag"
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag" \
+            --jq "map(select(.ref == \"$ref\")) | length")
+          if ((existing > 0)); then
+            tagged=$(gh api "repos/$GITHUB_REPOSITORY/commits/$ref" --jq .sha)
+            [[ "$tagged" == "$GITHUB_SHA" ]] ||
+              { echo "El tag $tag apunta a $tagged, no a $GITHUB_SHA: revisar la versión."; exit 1; }
+          fi
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --generate-notes
+          echo "Release $tag publicada sobre $GITHUB_SHA." >> "$GITHUB_STEP_SUMMARY"

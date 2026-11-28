@@ -4,7 +4,7 @@ import angular from 'angular-eslint';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'coverage/**', '.angular/**', '.tmp/**'] },
+  { ignores: ['dist/**', 'coverage/**', '.angular/**', '.tmp/**', '.wrangler/**'] },
   {
     files: ['**/*.ts'],
     extends: [

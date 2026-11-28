@@ -45,7 +45,7 @@ Angular 22 standalone, TypeScript strict, SCSS, rutas lazy con Angular Router y 
 
 ## Configuración y contrato de la API
 
-Definí `API_BASE_URL` con la URL pública HTTPS del output `ApiUrl` del stack del backend. Conservá la ruta del stage si existe y agregá `/api` al final. Ejecutá `npm run build` con esa variable definida. El build valida la URL y la pasa a Angular mediante un archivo de entorno temporal. Desarrollo y fixtures conservan sus propios reemplazos de archivo.
+`npm run build` lee los valores públicos de producción de [`deploy/production.json`](deploy/production.json): `apiBaseUrl` es la URL pública HTTPS del output `ApiUrl` del stack del backend, con la ruta del stage si existe y `/api` al final. El build valida el archivo y lo pasa a Angular mediante un archivo de entorno temporal. Desarrollo y fixtures conservan sus propios reemplazos de archivo.
 
 El frontend consume el contrato de `365-tracks-api`:
 
@@ -60,14 +60,12 @@ El reloj del visitante programa estas consultas. Si está atrasado, la actualiza
 
 ## Archivo en Spotify
 
-Definí `SPOTIFY_PLAYLISTS` al compilar como un objeto JSON cuyas claves sean años desde `2027` y cuyos valores sean las URLs públicas `https://open.spotify.com/playlist/` con los identificadores de las playlists correspondientes. Agregá cada playlist cuando sea pública. Historial muestra los enlaces en otra pestaña y ordena los años de más a menos reciente. Omití la variable o usá `{}` para ocultar la sección. El modo fixtures siempre la oculta.
+`spotifyPlaylists` de [`deploy/production.json`](deploy/production.json) asocia años desde `2027` con URLs públicas `https://open.spotify.com/playlist/`. Agregá cada playlist cuando sea pública. Historial muestra los enlaces en otra pestaña, del año más reciente al más antiguo, y oculta la sección si el objeto está vacío. El modo fixtures siempre la oculta.
 
 La playlist se actualiza fuera de Angular. Una canción puede aparecer en el historial de la app antes de que se agregue a Spotify, porque la playlist espera a que la fecha de publicación termine en todas las zonas horarias. La canción del día tiene su propio enlace a Spotify. El acceso a la playlist y su sincronización no requieren un endpoint público nuevo.
 
-## Cloudflare Pages
+## Publicación
 
-Usá `npm run build` y publicá `dist/365-tracks/browser`. Configurá Node.js según `.nvmrc`, definí `API_BASE_URL` y, opcionalmente, `SPOTIFY_PLAYLISTS` en el entorno de build. Ambos valores quedan en el código del navegador y solo deben contener URLs públicas. Para Direct Upload, definí las mismas variables en la terminal donde compilás. Para una vista previa local, serví la salida del build con un servidor estático que resuelva las rutas de la aplicación con `index.html`.
+El sitio se sirve con Cloudflare Workers y assets estáticos en `https://daywave.matiasgaleano.dev`. `npm run preview` compila para producción, verifica la salida y la sirve en local con Wrangler. Integrar un release en `main` despliega automáticamente y publica su tag y release. La [guía de despliegue](DEPLOYMENT.es.md) cubre la configuración de Workers, los valores públicos, los secretos, la configuración inicial, el rollback y el dominio propio.
 
-Cuando se defina el dominio, agregá el origen público exacto del frontend a `CORS_ALLOWED_ORIGINS` del backend. Usá `https://<dominio-del-frontend>` con puerto solo si corresponde, sin ruta ni barra final. Si se usan un dominio propio y un host `pages.dev`, agregá sus orígenes por separado. El `index.html` raíz de Angular y la ausencia de un `404.html` raíz habilitan el fallback SPA de Pages para las rutas profundas. `public/_headers` define encabezados de respuesta.
-
-Referencia: [Compatibilidad de Angular](https://angular.dev/reference/versions), [Angular en Cloudflare](https://developers.cloudflare.com/pages/framework-guides/deploy-an-angular-site/), [Rutas SPA en Pages](https://developers.cloudflare.com/pages/configuration/serving-pages/#single-page-application-spa-rendering).
+Los metadatos para compartir (título, descripción, Open Graph y la tarjeta social) forman parte de `src/index.html`, así que las vistas previas de enlaces funcionan sin JavaScript. Como todas las rutas reciben el mismo HTML, la URL canónica se declara por ruta al navegar y la página 404 se marca `noindex`. `public/robots.txt` y `public/sitemap.xml` listan las rutas públicas. Los PNG de marca se generan desde `public/daywave-mark.svg` con `bash scripts/brand-assets.sh`.
