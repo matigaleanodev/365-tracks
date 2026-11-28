@@ -8,9 +8,25 @@ Referencia del diseño de Edición diaria. La base de estilos comparte tokens se
 
 Daywave publica una selección musical compartida por día, acompañada de una nota breve y una salida a Spotify. La fecha, la canción y la portada componen la edición. La nota propone algo concreto para escuchar. El historial recoge las ediciones publicadas por mes.
 
-El wordmark **Daywave** usa Source Sans 3 en peso 700, tracking −0,04 em y color de primer plano en una línea. Lo acompaña un disco de vinilo SVG monocromático que toma el acento del tema mediante `currentColor`. El slogan **One day. One song. One world.** se usa en el prelanzamiento y en la presentación de la marca. El texto de interfaz usa español rioplatense y verbos concretos.
+El nombre se escribe Daywave en texto corriente. El wordmark visual es **daywave** en minúsculas, Source Sans 3 en peso 600, tracking −0,02 em y color de primer plano en una línea. Lo acompaña el isotipo: un disco de vinilo clásico. El slogan **One day. One song. One world.** se usa en el prelanzamiento y en la presentación de la marca. El texto de interfaz usa español rioplatense y verbos concretos.
 
-El disco de `public/daywave-mark.svg`, el wordmark del encabezado y el favicon (`public/favicon.svg`) son la marca definitiva. Los PNG de favicon, ícono táctil, manifiesto y tarjeta social se derivan del mismo disco y la paleta clara con `scripts/brand-assets.sh`.
+### Isotipo y favicon
+
+`public/daywave-mark.svg` (símbolo `#record`) es la única fuente del isotipo. Geometría en un viewBox de 120: cuerpo r 56, cinco surcos de trazo 1 en r 49, 44, 39, 34 y 29, etiqueta r 22 y orificio r 3,5 del color del cuerpo. La geometría es idéntica en ambos temas. Solo cambian los colores, mediante tokens de marca que no alteran la paleta general:
+
+| Token                                | Claro     | Oscuro    |
+| ------------------------------------ | --------- | --------- |
+| `--brand-record` (cuerpo y orificio) | `#242326` | `#39373F` |
+| `--brand-groove` (surcos)            | `#49474C` | `#605D67` |
+| `--brand-label` (etiqueta)           | `#8B79C6` | `#B5A6E8` |
+
+En claro la etiqueta usa un violeta intermedio porque el acento `#413474` casi no contrasta con el cuerpo. Si el SVG se usa sin tokens, por ejemplo dentro de `<img>`, toma la paleta clara.
+
+En el encabezado, el isotipo ocupa una caja de 0,9 em y lo separa del wordmark un espacio de 0,2 em. Por debajo de 18 px de cuerpo se usa solo el isotipo o el favicon. El slogan no forma parte del logo: va en una composición aparte, como la tarjeta social o el prelanzamiento. El logo no tiene animaciones ni efectos.
+
+`public/favicon.svg` es la simplificación óptica para pestañas. En un viewBox de 32 conserva el cuerpo (r 16, hasta el borde), la etiqueta (r 6,5) y un orificio de r 2, que a 16 px se distingue con 3:1. Muestra dos surcos a 32 px y ninguno a 16 px. Con `prefers-color-scheme: dark` usa la paleta oscura y suma un aro alineado al píxel en el color de surco (1 px a 32 px y a 16 px), porque el cuerpo oscuro casi desaparece sobre las pestañas oscuras del navegador.
+
+`scripts/brand-assets.sh` genera favicon PNG, ícono táctil, íconos del manifiesto y tarjeta social a partir de esos dos SVG, con la paleta clara. No contiene geometría propia: para cambiar la marca se editan los SVG y se vuelve a correr el script.
 
 ## Fecha y número de edición
 
