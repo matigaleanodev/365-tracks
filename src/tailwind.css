@@ -58,6 +58,12 @@
   --lilac-focus: #d4c2ff;
   --plum-error: #863450;
   --pink-error: #f3b1ca;
+  --record-graphite: #242326;
+  --record-graphite-night: #39373f;
+  --record-groove: #49474c;
+  --record-groove-night: #605d67;
+  --record-label: #8b79c6;
+  --record-label-night: #b5a6e8;
 
   /* Semantic roles follow the active document color scheme. */
   --background: light-dark(var(--paper), var(--night));
@@ -73,6 +79,10 @@
   --control-border: light-dark(var(--ink-outline), var(--night-outline));
   --focus: light-dark(var(--violet-focus), var(--lilac-focus));
   --error: light-dark(var(--plum-error), var(--pink-error));
+  /* Brand record: same geometry in both themes, colors tuned to each canvas. */
+  --brand-record: light-dark(var(--record-graphite), var(--record-graphite-night));
+  --brand-groove: light-dark(var(--record-groove), var(--record-groove-night));
+  --brand-label: light-dark(var(--record-label), var(--record-label-night));
   --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-body: 'Source Sans 3', system-ui, sans-serif;
   --art-radius: 0.125rem;
