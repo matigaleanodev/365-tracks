@@ -27,7 +27,7 @@ Open `http://localhost:4200`. The development environment calls `http://localhos
 npm run start:fixtures
 ```
 
-This separate local mode intercepts the three track endpoints. Its invented songs, dates and original sample artwork are labeled as a demonstration. The demo hides its fictional Spotify links and includes tracks with and without artwork and editorial notes. Open `/?fixture=empty` or `/history?fixture=empty` to see unpublished and empty states. Use `?fixture=error` on the route to simulate HTTP 500. Fixtures and their assets are excluded from the production build.
+This separate local mode intercepts the three track endpoints. Its invented songs, dates and original sample artwork are labeled as a demonstration. The demo hides its fictional Spotify links and includes tracks with and without artwork and editorial notes. Open `/?fixture=empty` or `/history?fixture=empty` to see unpublished and empty states, and `/?fixture=prelaunch` to preview prelaunch regardless of the device date (fixture mode otherwise ignores the launch date). Use `?fixture=error` on the route to simulate HTTP 500. Fixtures and their assets are excluded from the production build.
 
 ```sh
 npm run lint
@@ -62,6 +62,8 @@ The frontend consumes the `365-tracks-api` contract:
 - API errors have the shape `{ error: { code, message, requestId? } }`. Unexpected failures and malformed success responses show a retry action.
 
 The frontend sends the IANA time zone reported by the browser or `UTC` if detection fails. The API determines publication visibility and supplies the date shown with each track. On the home page, a local date change triggers a fresh `/tracks/today` request, including after returning to a hidden tab. If the API still returns an older date or `TRACK_NOT_FOUND`, the home page can retry within the first two minutes of the local day.
+
+Before 2027-01-01 in the visitor's local calendar, the home page shows the prelaunch view without requesting `/tracks/today`. The first request happens at local midnight on launch day, even if the page stays open, or when a hidden tab becomes visible again. A device clock running behind keeps the prelaunch view for as long as it lags. This is the only case where the device clock decides what the page shows; after launch, the API determines the edition. From then on, `TRACK_NOT_FOUND` is a waiting state ("no song today yet"), while any other failure, including a 404 without that code, shows the retry state.
 
 The visitor clock schedules these checks. With a slow clock, the refresh can lag by the amount of the clock skew. Exact timing requires an API clock or a next-publication timestamp readable on both success and `TRACK_NOT_FOUND`. A gateway's HTTP `Date` header is unavailable to cross-origin JavaScript unless CORS explicitly exposes it.
 
