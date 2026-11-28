@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Assets estáticos. worker/index.js solo atiende lo que los assets no resuelven (ver el archivo).
+  "name": "daywave",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist/365-tracks/browser",
+    "binding": "ASSETS",
+    // Las rutas de Angular (/history, /tracks/:date) se recargan desde index.html.
+    "not_found_handling": "single-page-application",
+    "html_handling": "auto-trailing-slash",
+  },
+  // Único origen público: sin workers.dev ni URLs de preview que dupliquen el sitio.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "daywave.matiasgaleano.dev", "custom_domain": true }],
+  "observability": { "enabled": false },
+}
