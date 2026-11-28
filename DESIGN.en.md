@@ -6,7 +6,7 @@ Daily Edition design reference. The styling foundation shares semantic tokens be
 
 Daywave is a shared daily music selection, with one listening note and a Spotify link. Violet, the edition rule, date and serif track title establish its editorial identity. The **Daywave** wordmark uses Source Sans 3 at weight 700 with −0.04 em tracking and the foreground color on one line. A monochrome vinyl record SVG takes the theme accent through `currentColor`. The tagline **One day. One song. One world.** appears on the prelaunch screen and in product introductions. The interface uses Rioplatense Spanish.
 
-The logo (`public/daywave-mark.svg` and the header wordmark) and favicon (`public/favicon.svg`) are provisional. Their final design will be addressed during launch preparation.
+The record in `public/daywave-mark.svg`, the header wordmark and the favicon (`public/favicon.svg`) are the final brand. Favicon, touch icon, manifest and social card PNGs derive from the same record and the light palette through `scripts/brand-assets.sh`.
 
 ## Editions and surfaces
 
