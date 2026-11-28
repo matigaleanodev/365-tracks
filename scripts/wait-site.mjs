@@ -50,8 +50,12 @@ async function authoritative() {
       throw error;
     });
     if (!names.length) continue;
-    const addresses = (await Promise.all(names.map((name) => dns.resolve4(name)))).flat();
+    // Alcanza con un NS que resuelva; si ninguno lo hace, se propaga el primer error.
+    const results = await Promise.allSettled(names.map((name) => dns.resolve4(name)));
+    const addresses = results.flatMap((result) => result.value ?? []);
     if (addresses.length) return { zone, addresses };
+    const failed = results.find((result) => result.status === 'rejected');
+    if (failed) throw failed.reason;
   }
   throw Object.assign(new Error(`no se encontraron servidores autoritativos para ${host}`), {
     code: 'ENOAUTH',
